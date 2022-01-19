@@ -20,14 +20,67 @@ library(maptools)
 library(sdmpredictors)
 library(janitor)
 library(kableExtra)
+library(plyr)
+library(tmap)
 ```
 
 ## Read in the data
 
 ```{r}
-gcir_data <- read_csv(here("data", "s_tudes_occurrences_raw_gbif.csv")) %>% 
-  clean_names()
+# Load occurrence data
+
+#GBIF
+stud_data_gbif <- read.csv(here("data","occurrences", "s_tudes_occurrences_raw_gbif.csv"), sep = ";") %>% 
+  clean_names() %>% 
+  rename(long = decimal_longitude,
+         lat = decimal_latitude) %>% 
+  mutate(source = case_when(
+    species == "Sphyrna tudes" ~ "GBIF"
+  )) 
+
+
+#OBIS
+stud_data_obis <- read.csv(here("data","occurrences", "obis_raw.csv"), sep = ";") %>% 
+  clean_names() %>% 
+  rename(long = decimallongitude,
+         lat = decimallatitude) %>% 
+  mutate(source = case_when(
+    scientificname == "Sphyrna tudes" ~ "OBIS"
+  ))
+
+#Fish net
+stud_data_fishnet <- read.csv(here("data","occurrences", "fish_net_2_raw.csv"), sep = ";") %>% 
+  clean_names() %>% 
+  rename(long = longitude,
+         lat = latitude) %>% 
+  mutate(source = case_when(
+    scientific_name == "Sphyrna tudes" ~ "FISHNET"
+  ))
+``` 
+
+
+```{r}
+# Create new dataset with only lat and long
+gbif_subset <- stud_data_gbif %>% 
+  dplyr::select(source, long, lat) %>% 
+  mutate_at(c(2,3), as.numeric)
+
+obis_subset <- stud_data_obis %>% 
+  dplyr::select(source, long, lat)
+
+fish_subset <- stud_data_fishnet %>% 
+  dplyr::select(source, long, lat) %>% 
+  mutate_at(c(2,3), as.numeric)
+
+geo_data_whole <- join_all(list(gbif_subset, obis_subset, fish_subset), type = "full") %>% 
+  drop_na()
 ```
+
+```{r}
+# Plot occurrences in a map
+
+```
+
 
 
 ## Clean and wrangle data
