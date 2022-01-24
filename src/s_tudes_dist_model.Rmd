@@ -22,6 +22,7 @@ library(janitor)
 library(kableExtra)
 library(plyr)
 library(tmap)
+library(sf)
 ```
 
 ## Read in the data
@@ -91,7 +92,10 @@ ggplot() +
           color = "black") +
   geom_point(data = whole_occur_data_final,
              aes(x = long, y = lat,
-                 color = source))
+                 color = source)) +
+  coord_sf()
+
+ggsave(here::here("outputs", "occurrence_map.png"), height = 8, width = 10)
 ```
 
 
@@ -142,12 +146,31 @@ gcir_counts %>%
 
 ```{r}
 # Check for layer codes from Bio-ORACLE
-list_layers(c("Bio-ORACLE", monthly = F))$layer_code
+list_layers(c("Bio-ORACLE", monthly = F, marine = TRUE))$layer_code
 
 # Load selected layers based on knowledge about the species biology
-env_layers <- load_layers(c("BO2_salinitymean_bdmean", "BO2_chlomean_bdmean", "BO_bathymax", "BO_bathymin", 
-                       "BO2_dissoxmean_bdmean", "BO2_ironmean_bdmean", "BO2_lightbotmean_bdmean", 
-                       "BO2_tempmean_bdmean", "BO2_ppmean_bdmean"))
+env_layers <- load_layers(c("BO2_salinitymean_bdmean", 
+                            "BO2_chlomean_bdmean", 
+                            "BO_bathymax", 
+                            "BO_bathymin",
+                            "BO2_dissoxmean_bdmean", 
+                            "BO2_ironmean_bdmean", 
+                            "BO2_lightbotmean_bdmean",
+                            "BO2_tempmean_bdmean",
+                            "BO2_ppmean_bdmean",
+                            "BO2_tempmean_ss",
+                            "BO2_temprange_ss",
+                            "BO2_chlomean_ss",
+                            "BO2_chlorange_ss",
+                            "BO2_dissoxmean_ss",
+                            "BO2_dissoxrange_ss",
+                            "BO2_ironrange_ss",
+                            "BO2_ironmean_ss",
+                            "BO2_salinitymean_ss",
+                            "BO2_salinityrange_ss",
+                            "BO2_curvelmean_ss",
+                            "BO2_curvelrange_ss",
+                             "BO_cloudmean"))
 ```
 
 
