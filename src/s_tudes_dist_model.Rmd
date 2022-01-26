@@ -21,7 +21,6 @@ library(sdmpredictors)
 library(janitor)
 library(kableExtra)
 library(plyr)
-library(tmap)
 library(sf)
 ```
 
@@ -62,27 +61,33 @@ stud_data_fishnet <- read.csv(here::here("data","occurrences", "fish_net_2_raw.c
 world_countries <- read_sf(here::here("data", "world_countries", "World_Countries.shp"))
 
 # read whole occurrence data 
-whole_occur_data_final <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";")
+whole_occur_data_final <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";") %>% 
+  dplyr::select(long, lat)
 ``` 
+## Load env layers
+
+```{r}
+env_layers <- list.files(here::here("data", "raster_layers", "present"), pattern =".tif", full.names = TRUE)
+```
 
 
 ```{r}
 # Create new dataset with only lat and long
-gbif_subset <- stud_data_gbif %>% 
-  dplyr::select(source, long, lat) %>% 
-  mutate_at(c(2,3), as.numeric)
-
-obis_subset <- stud_data_obis %>% 
-  dplyr::select(source, long, lat)
-
-fish_subset <- stud_data_fishnet %>% 
-  dplyr::select(source, long, lat) %>% 
-  mutate_at(c(2,3), as.numeric)
-
-geo_data_whole <- join_all(list(gbif_subset, obis_subset, fish_subset), type = "full") %>% 
-  drop_na()
-
-write_csv(geo_data_whole, path = here::here("data", "occurrences", "occurrence_data.csv"), col_names = TRUE)
+# gbif_subset <- stud_data_gbif %>% 
+#   dplyr::select(source, long, lat) %>% 
+#   mutate_at(c(2,3), as.numeric)
+# 
+# obis_subset <- stud_data_obis %>% 
+#   dplyr::select(source, long, lat)
+# 
+# fish_subset <- stud_data_fishnet %>% 
+#   dplyr::select(source, long, lat) %>% 
+#   mutate_at(c(2,3), as.numeric)
+# 
+# geo_data_whole <- join_all(list(gbif_subset, obis_subset, fish_subset), type = "full") %>% 
+#   drop_na()
+# 
+# write_csv(geo_data_whole, path = here::here("data", "occurrences", "occurrence_data.csv"), col_names = TRUE)
 ```
 
 ```{r, fig.width=10, fig.height=10}
@@ -105,117 +110,125 @@ ggsave(here::here("outputs", "occurrence_map.png"), height = 8, width = 10)
 
 ```{r}
 # Select useful variables from raw data
-gcir_clean <- gcir_data %>% 
-  rename(lat = decimal_latitude,
-         long = decimal_longitude) %>% 
-  dplyr::select(species, country_code, basis_of_record, institution_code, day, month, year, identified_by, lat, long)
-  
-# Create a dataset with occurrences only 
-gcir_ocur <- gcir_clean %>% 
-  dplyr::select(long, lat)
-
-# Counts of observations from countries
-gcir_counts <- gcir_clean %>% 
-  mutate(countries = case_when(
-    country_code %in% c("BM") ~ "Bermuda",
-    country_code %in% c("BZ") ~ "Belize",
-    country_code %in% c("CO") ~ "Colombia",
-    country_code %in% c("BR") ~ "Brazil",
-    country_code %in% c("BQ") ~ "Sint Eustatius",
-    country_code %in% c("BS") ~ "Bahamas",
-    country_code %in% c("MX") ~ "Mexico",
-    country_code %in% c("US") ~ "United States of America",
-    country_code %in% c("CR") ~ "Costa Rica",
-    country_code %in% c("GF") ~ "French Guyana",
-    country_code %in% c("PA") ~ "Panama",
-    country_code %in% c("JM") ~ "Jamaica",
-    country_code %in% c("EC") ~ "Ecuador",
-    )) %>% 
-  count(countries, institution_code)
-
-#Create finalized table of occurrence counts
-gcir_counts %>% 
-  kable(col.names = c("Country",
-                      "Institution",
-                      "n"),
-        caption = "Occurrence counts retrieved from GBIF by country and institutions") %>% 
-  kable_classic(bootstrap_options = "striped", full_width = F)
+# gcir_clean <- gcir_data %>% 
+#   rename(lat = decimal_latitude,
+#          long = decimal_longitude) %>% 
+#   dplyr::select(species, country_code, basis_of_record, institution_code, day, month, year, identified_by, lat, long)
+#   
+# # Create a dataset with occurrences only 
+# gcir_ocur <- gcir_clean %>% 
+#   dplyr::select(long, lat)
+# 
+# # Counts of observations from countries
+# gcir_counts <- gcir_clean %>% 
+#   mutate(countries = case_when(
+#     country_code %in% c("BM") ~ "Bermuda",
+#     country_code %in% c("BZ") ~ "Belize",
+#     country_code %in% c("CO") ~ "Colombia",
+#     country_code %in% c("BR") ~ "Brazil",
+#     country_code %in% c("BQ") ~ "Sint Eustatius",
+#     country_code %in% c("BS") ~ "Bahamas",
+#     country_code %in% c("MX") ~ "Mexico",
+#     country_code %in% c("US") ~ "United States of America",
+#     country_code %in% c("CR") ~ "Costa Rica",
+#     country_code %in% c("GF") ~ "French Guyana",
+#     country_code %in% c("PA") ~ "Panama",
+#     country_code %in% c("JM") ~ "Jamaica",
+#     country_code %in% c("EC") ~ "Ecuador",
+#     )) %>% 
+#   count(countries, institution_code)
+# 
+# #Create finalized table of occurrence counts
+# gcir_counts %>% 
+#   kable(col.names = c("Country",
+#                       "Institution",
+#                       "n"),
+#         caption = "Occurrence counts retrieved from GBIF by country and institutions") %>% 
+#   kable_classic(bootstrap_options = "striped", full_width = F)
 ```
 
 ## loading biooracle data
 
 ```{r}
 # Check for layer codes from Bio-ORACLE
-list_layers(c("Bio-ORACLE", monthly = F, marine = TRUE))$layer_code
+#list_layers(c("Bio-ORACLE", monthly = F, marine = TRUE))$layer_code
 
 # Load selected layers based on knowledge about the species biology
-env_layers <- load_layers(c("BO2_salinitymean_bdmean", 
-                            "BO2_chlomean_bdmean", 
-                            "BO_bathymax", 
-                            "BO_bathymin",
-                            "BO2_dissoxmean_bdmean", 
-                            "BO2_ironmean_bdmean", 
-                            "BO2_lightbotmean_bdmean",
-                            "BO2_tempmean_bdmean",
-                            "BO2_ppmean_bdmean",
-                            "BO2_tempmean_ss",
-                            "BO2_temprange_ss",
-                            "BO2_chlomean_ss",
-                            "BO2_chlorange_ss",
-                            "BO2_dissoxmean_ss",
-                            "BO2_dissoxrange_ss",
-                            "BO2_ironrange_ss",
-                            "BO2_ironmean_ss",
-                            "BO2_salinitymean_ss",
-                            "BO2_salinityrange_ss",
-                            "BO2_curvelmean_ss",
-                            "BO2_curvelrange_ss",
-                             "BO_cloudmean"))
+#env_layers <- load_layers(c("BO2_salinitymean_bdmean", 
+                            # "BO2_chlomean_bdmean", 
+                            # "BO_bathymax", 
+                            # "BO_bathymin",
+                            # "BO2_dissoxmean_bdmean", 
+                            # "BO2_ironmean_bdmean", 
+                            # "BO2_lightbotmean_bdmean",
+                            # "BO2_tempmean_bdmean",
+                            # "BO2_ppmean_bdmean",
+                            # "BO2_tempmean_ss",
+                            # "BO2_temprange_ss",
+                            # "BO2_chlomean_ss",
+                            # "BO2_chlorange_ss",
+                            # "BO2_dissoxmean_ss",
+                            # "BO2_dissoxrange_ss",
+                            # "BO2_ironrange_ss",
+                            # "BO2_ironmean_ss",
+                            # "BO2_salinitymean_ss",
+                            # "BO2_salinityrange_ss",
+                            # "BO2_curvelmean_ss",
+                            # "BO2_curvelrange_ss",
+                            #  "BO_cloudmean"))
 ```
 
 
 # Wrangling layer data
 
 ```{r}
-predictors <- stack(env_layers)
+predictors <- lapply(env_layers, raster)
 
+predictors <- stack(predictors)
 #determina as coordenadas para delimitar a extensao do mapa abaixo
 #coordenadas para analise em menor escala: (-80,-35,-10,20)
-map_extent <- extent(-120,0,-80,50) 
+map_extent <- extent(-120, 0, -80, 50) 
 
 #define a extensao (recorta a America do Sul)
 predictors <- crop(predictors, map_extent) 
 
+```
+
+```{r}
 #seleciona o plot para uma determinada variavel
-plot(predictors[[4]])
+plot(predictors[[17]])
 
 #coloca os contornos no mapa
 map(add=T)
 
 #inserir pontos de ocorrencia no mapa
-points(gcir_ocur, pch=20) 
+points(ocor, pch=20) 
+
 ```
+```{r}
+#read in the data in .txt
+ocor <- read.table(here::here("data", "occurrences", "occurrence_data.txt"), h = T)
+```
+
 
 ## Assembling the models
 
 ```{r}
 # número de repetições para rodar os modelos
-repeticao = 1
+repeticao = 20
 
 # extrai pontos de ocorrencias com as variaveis climaticas OBS: Longitude primeiro e depois latitude
-ocor.val <- extract(predictors, gcir_ocur, cell = T)
+ocor.val <- extract(predictors, ocor, cell = T)
 
 # identificar células duplicadas
-id.dup <- duplicated(ocor.val["cells"])
+id.dup <- duplicated(ocor.val[,"cells"])
 
 #cbind junta as colunas de pontos de ocorrencia com as variaveis climaticas
-gcir_ocur <- cbind(gcir_ocur, ocor.val == FALSE)
+ocor <- cbind(ocor, ocor.val[,-1])
 
-gcir_ocur <- gcir_ocur[which(id.dup == FALSE),]
+ocor <- ocor[which(id.dup == FALSE),]
 
-gcir_ocur <- na.omit(gcir_ocur)
-
-
+ocor <- na.omit(ocor)
 ```
 
 
@@ -223,18 +236,24 @@ gcir_ocur <- na.omit(gcir_ocur)
 
 ```{r}
 # checar correlacao das variaveis
-variables <- gcir_ocor[,3:8]
+variables <- ocor[,3:19]
 
 correlation <- (cor(variables)> 0.7)*1
 
-write.csv2(correlation, "correlation.csv")
+#Transform correlation matrix into a df
+correlation_df <- as.data.frame(correlation)
+
+write_csv(correlation_df, path = here::here("data", "raster_layers", "present_env_layers_correlation_mtx2.csv"), col_names = T)
 ```
+
+- List of rasters to remove due to high correlation:
+benthic Current velocity range, light at bottom range, benthic silicate mean, surface current velocity range, surface iron range, benthic chlorophil range, benthic chlorophil mean, surface dissolved oxygen range
 
 
 ### Background points
 
 ```{r}
-bg <- randomPoints(predictors, nrow(gcir_ocur), ext = map_extent)
+bg <- randomPoints(predictors, nrow(ocor), ext = map_extent)
 
 # extracts cells chosen for absences
 back <- extract(predictors, bg)
@@ -246,7 +265,7 @@ back <- cbind(bg, back)
 points(bg, pch = 20, col = "red")
 
 
-data <- prepareData(x = predictors, p = gcir_ocur[, 1:2], b = back[, 1:2])
+data <- prepareData(x = predictors, p = ocor[, 1:2], b = back[, 1:2])
 ```
 
 
@@ -254,20 +273,20 @@ data <- prepareData(x = predictors, p = gcir_ocur[, 1:2], b = back[, 1:2])
 
 ## Creating objects to store results 
 ```{r}
-bioclim0k<-gower0k<-maha0k<-maxent0k<-SVM0k<-GLM0k<-stack()
+bioclim0k <-gower0k<-maha0k<-maxent0k<-SVM0k<-GLM0k<-stack()
 
-bioclim.e<-gower.e<-maha.e<-maxent.e<-SVM.e<-GLM.e<-NULL
+bioclim.e <-gower.e<-maha.e<-maxent.e<-SVM.e<-GLM.e<-NULL
 
-bioclim.t<-gower.t<-maha.t<-maxent.t<-SVM.t<-GLM.t<-NULL
+bioclim.t <-gower.t<-maha.t<-maxent.t<-SVM.t<-GLM.t<-NULL
 ```
 
 
 # Model loop
 ```{r}
 for(i in 1:20){
-  id.treino<-sample(1:nrow(gcir_ocur),round(0.75*nrow(gcir_ocur),0))  ###0.75 ? pra pegar 75% dos pontos de ocorrencia pra treino, o round ? s? pra nao dar numero quebrado
-  treino<-prepareData(x = predictors, p = gcir_ocur[id.treino,1:2], b = back[id.treino,1:2])  ##o id.treino ta falando que ? pra pegar s? as linhas do id.treino
-  teste<-prepareData(x = predictors, p = gcir_ocur[-id.treino,1:2], b = back[-id.treino,1:2])  ##aqui o -id.treino ? pra tirar os usados no id.treino
+  id.treino<-sample(1:nrow(ocor),round(0.75*nrow(ocor),0))  ###0.75 ? pra pegar 75% dos pontos de ocorrencia pra treino, o round ? s? pra nao dar numero quebrado
+  treino<-prepareData(x = predictors, p = ocor[id.treino,1:2], b = back[id.treino,1:2])  ##o id.treino ta falando que ? pra pegar s? as linhas do id.treino
+  teste<-prepareData(x = predictors, p = ocor[-id.treino,1:2], b = back[-id.treino,1:2])  ##aqui o -id.treino ? pra tirar os usados no id.treino
   
   
   #1) Bioclim
@@ -357,9 +376,9 @@ writeRaster(maxent0k, "maxent0k.bil", format = "EHdr", overwrite = T)
 
 # Write AUC table for all models
 write.table(data.frame(bioclim = bioclim.e, gower = gower.e, maha = maha.e,maxent = maxent.e),
-            "AUC.txt", sep = "\t", row.names = F)
+            here::here("data", "outputs", "AUC_present.txt"), sep = "\t", row.names = F)
 write.table(data.frame(bioclim = bioclim.t, gower = gower.t, maha = maha.t,maxent = maxent.t),
-            "Threshold.txt", sep = "\t", row.names = F)
+            here::here("data", "outputs", "Threshold_present.txt"), sep = "\t", row.names = F)
 ```
 
 # Part 2
@@ -367,11 +386,8 @@ write.table(data.frame(bioclim = bioclim.t, gower = gower.t, maha = maha.t,maxen
 setwd("~/BACKUP NOTEBOOK/DOCUMENTS/Leonardo/Mestrado UFPE/Projeto Mestrado UFPE/Projeto C. porosus/Cap?tulo 1/Mestrado - Leo/outputsleo")
 auc<-read.table("AUC.txt", h=T)
 ```{r}
-# FIGURE OUT HOW NOT TO USE THIS AND SEND RESULTS TO THE OUTPUTS FOLDER
-setwd("~/BACKUP NOTEBOOK/DOCUMENTS/Leonardo/Mestrado UFPE/Projeto Mestrado UFPE/Projeto C. porosus/Cap?tulo 1/Mestrado - Leo/outputsleo")
-
 # reading the table with AUC values for each model
-auc <- read.table("AUC.txt", h = T)
+auc <- read.table(here::here("data", "outputs", "AUC_present.txt"), h = T)
 
 # Gensemble
 gensemble <- vector(mode = "list", length = 1)
@@ -443,7 +459,7 @@ ensemble <- data.frame(na.omit(data.frame(xyFromCell(bioclima,1:ncell(bioclima))
 
 ensemble <- rasterFromXYZ(ensemble) ##Aqui faz um raster com os ensemble
 
-coordsp <- gcir_ocur
+coordsp <- ocor
 valm <- extract(ensemble, coordsp[, c("long", "lat")], cell = T) ##pega os valores de adequabilidade ambiental preditos pelo ensemble nos pontos de ocorr?ncia
 
 valm2 <- quantile(valm[,2],.05, na.rm = T) ##aqui se usa um quantil pra binarizar o mapa, normalmente o pessoa usa 0.5.Isso que dizer que s? os locais que tem os valores de adequabilidade maiores que o quntil de 5%
@@ -460,13 +476,16 @@ gensemble[[1]] <- ensemble>= valm2
 
 ```{r}
 # Tif 1
-writeRaster(x = gensemble[[1]], filename = paste(" (ensemble.05.1).tif",sep=""), format = 'GTiff', overwrite=T)
+writeRaster(x = gensemble[[1]], filename = file.path(here::here("data", "outputs", "ensemble_stud_binary_present.tif"),
+                                                     sep=""),
+            format = 'GTiff', overwrite=T)
 plot(ensemble)
-writeRaster(x = ensemble, filename = paste(" (ensemble2.05.1).tif", sep=""), format = 'GTiff', overwrite=T)
+writeRaster(x = ensemble, filename = file.path(here::here("data", "outputs", "ensemble_stud_prob_present.tif"),
+                                               sep=""), format = 'GTiff', overwrite=T)
 
 tiff(file="ensembled.05NCSA.2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(gensemble[[1]])
-points(ocor, pch=20) #inserir pontos de ocorr?ncia no mapa
+points(ocor, pch=20) 
 map(add=T)
 dev.off()
 
@@ -486,8 +505,47 @@ dev.off()
 
 ```
 
+## Read back in the rasters written above
+
+```{r}
+# Binary map
+stud_bin_pres <- raster::raster(here::here("data", "outputs", "ensemble_stud_binary_present.tif"))
+# Probabilty map
+stud_prob_pres <- raster::raster(here::here("data", "outputs", "ensemble_stud_prob_present.tif"))
+
+# Create df from rasters
+stud_bin_pres_df <- as.data.frame(stud_bin_pres, xy = TRUE) 
+
+stud_prob_pres_df <- as.data.frame(stud_prob_pres, xy = TRUE) 
+```
 
 
+## Trying to plot rasters in ggplot - Work further on this!
+
+```{r}
+ggplot() +
+  geom_point(data = stud_bin_pres_df, 
+            aes(x = x, y = y)) +
+  scale_color_viridis_b() +
+    geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "black",
+             alpha = 0.7) +
+  theme_bw()
+```
+
+
+```{r}
+ggplot() +
+  geom_point(data = stud_prob_pres_df, 
+            aes(x = x, y = y)) +
+  scale_color_viridis_b() +
+    geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "black",
+             alpha = 0.7) +
+  theme_bw()
+```
 
 
 
