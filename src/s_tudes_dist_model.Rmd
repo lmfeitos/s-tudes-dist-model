@@ -30,44 +30,49 @@ library(sf)
 # Load occurrence data
 
 #GBIF
-stud_data_gbif <- read.csv(here::here("data", "occurrences", "s_tudes_occurrences_raw_gbif.csv"), sep = ";") %>% 
-  clean_names() %>% 
-  dplyr::rename(long = decimal_longitude,
-         lat = decimal_latitude) %>% 
-  mutate(source = case_when(
-    species == "Sphyrna tudes" ~ "GBIF"
-  )) 
+# stud_data_gbif <- read.csv(here::here("data", "occurrences", "s_tudes_occurrences_raw_gbif.csv"), sep = ";") %>% 
+#   clean_names() %>% 
+#   dplyr::rename(long = decimal_longitude,
+#          lat = decimal_latitude) %>% 
+#   mutate(source = case_when(
+#     species == "Sphyrna tudes" ~ "GBIF"
+#   )) 
 
 
 #OBIS
-stud_data_obis <- read.csv(here::here("data","occurrences", "obis_raw.csv"), sep = ";")  %>% 
-  clean_names() %>% 
-  dplyr::rename(long = decimallongitude,
-         lat = decimallatitude) %>% 
-  mutate(source = case_when(
-    scientificname == "Sphyrna tudes" ~ "OBIS"
-  ))
+# stud_data_obis <- read.csv(here::here("data","occurrences", "obis_raw.csv"), sep = ";")  %>% 
+#   clean_names() %>% 
+#   dplyr::rename(long = decimallongitude,
+#          lat = decimallatitude) %>% 
+#   mutate(source = case_when(
+#     scientificname == "Sphyrna tudes" ~ "OBIS"
+#   ))
 
 #Fish net
-stud_data_fishnet <- read.csv(here::here("data","occurrences", "fish_net_2_raw.csv"), sep = ";")  %>% 
-  clean_names() %>% 
-  dplyr::rename(long = longitude,
-         lat = latitude) %>% 
-  mutate(source = case_when(
-    scientific_name == "Sphyrna tudes" ~ "FISHNET"
-  ))
+# stud_data_fishnet <- read.csv(here::here("data","occurrences", "fish_net_2_raw.csv"), sep = ";")  %>% 
+#   clean_names() %>% 
+#   dplyr::rename(long = longitude,
+#          lat = latitude) %>% 
+#   mutate(source = case_when(
+#     scientific_name == "Sphyrna tudes" ~ "FISHNET"
+#   ))
 
 # Map data
 world_countries <- read_sf(here::here("data", "world_countries", "World_Countries.shp"))
 
 # read whole occurrence data 
-whole_occur_data_final <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";") %>% 
+whole_occur_data_final <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";") %>%  
   dplyr::select(long, lat)
 ``` 
 ## Load env layers
 
 ```{r}
 env_layers <- list.files(here::here("data", "raster_layers", "present"), pattern =".tif", full.names = TRUE)
+```
+
+```{r}
+#read in the data in .txt
+ocor <- read.table(here::here("data", "occurrences", "occurrence_data.txt"), h = T)
 ```
 
 
@@ -96,8 +101,7 @@ ggplot() +
   geom_sf(data = world_countries,
           color = "black") +
   geom_point(data = whole_occur_data_final,
-             aes(x = long, y = lat,
-                 color = source)) +
+             aes(x = long, y = lat, color = source)) +
   coord_sf()
 
 ggsave(here::here("outputs", "occurrence_map.png"), height = 8, width = 10)
@@ -196,7 +200,7 @@ predictors <- crop(predictors, map_extent)
 
 ```{r}
 #seleciona o plot para uma determinada variavel
-plot(predictors[[17]])
+plot(predictors[[9]])
 
 #coloca os contornos no mapa
 map(add=T)
@@ -204,10 +208,6 @@ map(add=T)
 #inserir pontos de ocorrencia no mapa
 points(ocor, pch=20) 
 
-```
-```{r}
-#read in the data in .txt
-ocor <- read.table(here::here("data", "occurrences", "occurrence_data.txt"), h = T)
 ```
 
 
@@ -236,7 +236,7 @@ ocor <- na.omit(ocor)
 
 ```{r}
 # checar correlacao das variaveis
-variables <- ocor[,3:19]
+variables <- ocor[,3:11]
 
 correlation <- (cor(variables)> 0.7)*1
 
@@ -247,7 +247,7 @@ write_csv(correlation_df, path = here::here("data", "raster_layers", "present_en
 ```
 
 - List of rasters to remove due to high correlation:
-benthic Current velocity range, light at bottom range, benthic silicate mean, surface current velocity range, surface iron range, benthic chlorophil range, benthic chlorophil mean, surface dissolved oxygen range
+benthic Current velocity range, light at bottom range, benthic silicate mean, surface current velocity range, surface iron range, benthic chlorophil range, benthic chlorophil mean, surface dissolved oxygen range, removed all range variables and mean benthic temperature 
 
 
 ### Background points
@@ -483,13 +483,13 @@ plot(ensemble)
 writeRaster(x = ensemble, filename = file.path(here::here("data", "outputs", "ensemble_stud_prob_present.tif"),
                                                sep=""), format = 'GTiff', overwrite=T)
 
-tiff(file="ensembled.05NCSA.2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensembled_binary_2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(gensemble[[1]])
 points(ocor, pch=20) 
 map(add=T)
 dev.off()
 
-tiff(file="ensembled2.1.05NCSA.2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensembled_prob_2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(ensemble)
 points(ocor, pch=20) #inserir pontos de ocorr?ncia no mapa
 map(add=T)
@@ -497,7 +497,7 @@ dev.off()
 
 e <- extent(-80,-30,-10,20) 
 fig.menor <- crop(ensemble, e)
-tiff(file="fig.menor2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensemble_prob_smaller_2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(fig.menor)
 points(ocor, pch=20) #inserir pontos de ocorr?ncia no mapa
 map(add=T)
