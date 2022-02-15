@@ -1,0 +1,381 @@
+---
+title: "sdm_plots_ggplot"
+author: "Leonardo Feitosa"
+date: "28/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(sf)
+library(raster)
+library(patchwork)
+```
+
+
+
+
+```{r}
+## Read in the data from the test models for variable importance
+vars <- list.files(here::here("data", "outputs", "tests_present"),
+                   pattern = ".csv",
+                   full.names = TRUE)
+
+tbl <- sapply(vars, read.csv, simplify = FALSE, sep = ";")
+
+vars_tbl <- tbl %>%
+  bind_rows() 
+
+#### Wrangling the data to create a long table
+vars_long <- vars_tbl %>% 
+  pivot_longer(cols = bioclim:maxent,
+               names_to = "algorithm",
+               values_to = "auc")
+
+## Read in the data from final model
+model_final <- read.csv(here::here("data", "outputs", "present", "auc_present.csv"), sep = ";") %>% 
+  pivot_longer(cols = bioclim:maxent,
+               names_to = "algorithm",
+               values_to = "auc")
+```
+
+```{r}
+## Compute summary stats
+vars_summary <- vars_long %>% 
+  group_by(variable, algorithm) %>% 
+  summarise(mean_auc = mean(auc),
+            sd_auc = sd(auc))
+
+## Summary stats of final model
+final_summary <- model_final %>% 
+  group_by(variable, algorithm) %>% 
+  summarise(mean_auc = mean(auc),
+            sd_auc = sd(auc))
+
+summary_df <- full_join(vars_summary, final_summary, by = c("variable", "algorithm", "mean_auc", "sd_auc"))
+
+
+summary_df_wide <- summary_df %>% 
+  pivot_wider(names_from = starts_with(c("algorithm")),
+              values_from = ends_with(c("auc"))) %>% 
+  relocate(sd_auc_bioclim, .after = mean_auc_bioclim) %>% 
+  relocate(sd_auc_gower, .after = mean_auc_gower) %>% 
+  relocate(sd_auc_maha, .after = mean_auc_maha) %>% 
+  relocate(sd_auc_maxent, .after = mean_auc_maxent)
+
+write_csv(summary_df_wide, path = here::here("data", "outputs", "tests_present", "summary_stats_tests.csv"), col_names = T)
+```
+
+```{r, fig.width=10, fig.height=8}
+ggplot(data = vars_summary) +
+  geom_point(aes(x = variable, y = mean_auc, color = algorithm),
+             show.legend = F,
+             size = 2) +
+  geom_errorbar(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc),
+                size = 0.6) +
+  geom_hline(yintercept = 0.938688, 
+             size = 1,
+             color = "coral2",
+             alpha = 0.6) +
+  facet_wrap(~ algorithm) +
+  labs(x = "",
+       y = "Mean AUC") +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.title = element_text(size = 12, color = "black"),
+        axis.text = element_text(size = 10, color = "black"))
+```
+
+
+```{r, fig.width=8}
+ggplot(data = vars_summary %>% filter(algorithm == "bioclim")) +
+  geom_point(aes(x = variable, y = mean_auc, color = algorithm),
+             show.legend = F) +
+  geom_errorbar(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc)) +
+  geom_hline(yintercept = 0.8204545) +
+  scale_y_continuous(breaks = seq(0.6, 1, by = 0.1)) +
+  labs(x = "",
+       y = "Mean AUC",
+       title = "Bioclim") +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.title = element_text(size = 12, color = "black"),
+        axis.text = element_text(size = 10, color = "black"))
+
+ggplot(data = vars_summary %>% filter(algorithm == "maha")) +
+  geom_point(aes(x = variable, y = mean_auc, color = algorithm),
+             show.legend = F) +
+  geom_errorbar(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc)) +
+  geom_hline(yintercept = 0.9917355) +
+  labs(x = "",
+       y = "Mean AUC",
+       title = "Mahalanobis") +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.title = element_text(size = 12, color = "black"),
+        axis.text = element_text(size = 10, color = "black"))
+
+ggplot(data = vars_summary %>% filter(algorithm == "gower")) +
+  geom_point(aes(x = variable, y = mean_auc, color = algorithm),
+             show.legend = F) +
+  geom_errorbar(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc)) +
+  geom_hline(yintercept = 0.9528926) +
+  labs(x = "",
+       y = "Mean AUC",
+       title = "Gower") +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.title = element_text(size = 12, color = "black"),
+        axis.text.y = element_text(size = 10, color = "black"),
+        axis.text.x = element_blank())
+
+ggplot(data = vars_summary %>% filter(algorithm == "maxent")) +
+  geom_point(aes(x = variable, y = mean_auc, color = algorithm),
+             show.legend = F) +
+  geom_errorbar(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc)) +
+  geom_hline(yintercept = 0.9896694) +
+  labs(x = "",
+       y = "Mean AUC",
+       title = "Maxent") +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.title = element_text(size = 12, color = "black"),
+        axis.text.y = element_text(size = 10, color = "black"),
+        axis.title.x = element_blank())
+```
+
+
+## Read back in the rasters written above
+
+```{r}
+# ocor dataset
+ocor <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";") %>% 
+  dplyr::select(long, lat)
+# Binary map
+stud_bin_future <- raster::raster(here::here("data", "outputs", "future", "ensemble_stud_binary_future.tif"))
+# Probabilty map
+stud_prob_future <- raster::raster(here::here("data", "outputs", "future", "ensemble_stud_prob_future.tif"))
+
+# Binary map
+stud_bin_pres <- raster::raster(here::here("data", "outputs", "present", "ensemble_stud_binary_present_comparison.tif"))
+# Probabilty map
+stud_prob_pres <- raster::raster(here::here("data", "outputs", "present", "ensemble_stud_prob_present_comparison.tif"))
+
+# load shape files
+## world countries
+world <- read_sf(here::here("data", "shape_files", "world_countries", "World_Countries.shp"))
+
+# Sphyrna tudes IUCN distribution map 
+stud_dist_IUCN <- read_sf(here::here("data", "shape_files", "stud", "data_0.shp")) %>% 
+  as.data.frame()
+
+# Bathymetry layers
+bathy_0 <- read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_L_0.shp"))
+bathy_200<-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_K_200.shp"))
+bathy_1k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_J_1000.shp"))
+bathy_2k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_I_2000.shp"))
+bathy_3k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_H_3000.shp"))
+bathy_4k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_G_4000.shp"))
+bathy_5k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_F_5000.shp"))
+```
+
+```{r}
+# Check the CRS for the world and stud_dist_IUCN shape files
+world %>% st_crs() # WGS 84, CRS = 4326
+stud_dist_IUCN %>% st_crs() # WGS 84, CRS = 4326
+```
+
+
+```{r}
+# Create df from rasters
+stud_bin_fut_df <- raster::rasterToPoints(stud_bin_future) %>% 
+  as.data.frame() %>% 
+  rename(ensemble = ensemble_stud_binary_future)
+
+stud_prob_fut_df <- raster::rasterToPoints(stud_prob_future) %>% 
+  as.data.frame() %>% 
+  rename(ensemble = ensemble_stud_prob_future)
+
+stud_bin_pres_df <- raster::rasterToPoints(stud_bin_pres) %>% 
+  as.data.frame() %>% 
+  rename(ensemble = ensemble_stud_binary_present_comparison)
+
+stud_prob_pres_df <- raster::rasterToPoints(stud_prob_pres) %>% 
+  as.data.frame() %>%  
+  rename(ensemble = ensemble_stud_prob_present_comparison)
+
+```
+
+```{r}
+# WORK ON TRYING TO PLOT THE S. TUDES DISTRIBUTION MAP FROM IUCN
+ggplot() +
+  geom_sf(data = stud_dist_IUCN)
+```
+
+```{r code for plotting a map with bathymetry data}
+  geom_sf(data = bathy_0,
+          aes(fill = depth)) +
+  geom_sf(data = bathy_200,
+          aes(fill = depth,
+              color = depth),
+          show.legend = F) +
+  geom_sf(data = bathy_1k,
+          aes(fill = depth,
+              color = depth),
+          show.legend = F) +
+  geom_sf(data = bathy_2k,
+          aes(fill = depth,
+              color = depth),
+          show.legend = F) +
+  geom_sf(data = bathy_3k,
+          aes(fill = depth,
+              color = depth),
+          show.legend = F) +
+  geom_sf(data = bathy_5k,
+          aes(fill = depth,
+              color = depth),
+          show.legend = F) +
+  scale_color_gradient(low = "steelblue1", high = "royalblue4",
+                      breaks = seq(200, 5000, by = 2400),
+                      labels = c("<200", "2600", "5000")) +
+```
+
+
+## Trying to plot rasters in ggplot - Work further on this!
+
+```{r, fig.height=9, fig.width=9}
+future_comp_bin <- ggplot() +
+  geom_sf(data = world,
+          color = "black") +
+  geom_raster(data = stud_bin_fut_df,
+              aes(x = x, y = y, fill = ensemble)) +
+  scale_fill_gradient2() +
+  geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "black",
+             alpha = 0.7) +
+  coord_sf(xlim = c(-120, 0),
+           ylim = c(-60, 50),
+           expand = FALSE) +
+  labs(title = "Binary map S. tudes Future prediction RCP 4.5") +
+  theme_bw()
+```
+
+```{r, fig.height=9, fig.width=9}
+pres_com_bin <- ggplot() +
+  geom_sf(data = world,
+          color = "black") +
+  geom_raster(data = stud_bin_pres_df,
+              aes(x = x, y = y, fill = ensemble),
+              show.legend = F) +
+  scale_fill_gradient2() +
+  geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "black",
+             alpha = 0.7) +
+  coord_sf(xlim = c(-120, 0),
+           ylim = c(-60, 50),
+           expand = FALSE) +
+  labs(title = "Binary map S. tudes present") +
+  theme_bw()
+```
+
+
+```{r, fig.height=9, fig.width=9}
+future_comp <- ggplot() +
+  geom_sf(data = world) +
+  geom_raster(data = stud_prob_fut_df, 
+            aes(x = x, y = y, fill = ensemble)) +
+  geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "orangered2",
+             pch = 19,
+             alpha = 0.8) +
+  scale_fill_viridis_c() +
+  coord_sf(xlim = c(-120, 0),
+           ylim = c(-60, 50),
+           expand = FALSE) +
+  labs(title = "Probability map S. tudes Future") +
+  theme_bw()
+```
+
+```{r, fig.height=9, fig.width=9}
+present_comp <- ggplot() +
+  geom_sf(data = world) +
+  geom_raster(data = stud_prob_pres_df, 
+            aes(x = x, y = y, fill = ensemble),
+            show.legend = F) +
+  geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "orangered2",
+             pch = 19,
+             alpha = 0.8) +
+  scale_fill_viridis_c() +
+  coord_sf(xlim = c(-120, 0),
+           ylim = c(-60, 50),
+           expand = FALSE) +
+  labs(title = "Probability map S. tudes present") +
+  theme_bw()
+```
+
+```{r, fig.height=11, fig.width=11}
+(pres_com_bin + future_comp_bin) /
+  (present_comp + future_comp) +
+  plot_layout(widths = c(3,3),
+              heights = c(3,3))
+```
+
+```{r, fig.height=9, fig.width=9}
+future_comp_zoom <- ggplot() +
+  geom_sf(data = world) +
+  geom_raster(data = stud_prob_fut_df, 
+            aes(x = x, y = y, fill = ensemble)) +
+  geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "orangered2",
+             pch = 19,
+             alpha = 0.8) +
+  scale_fill_viridis_c() +
+  coord_sf(xlim = c(-80, -30),
+           ylim = c(-10, 20),
+           expand = FALSE) +
+  labs(x = "",
+       y = "",
+       title = "Probability map S. tudes Future",
+       fill = "Probability of occurrence") +
+  theme_bw() +
+  theme(axis.text = element_text(color = "black", size = 12))
+```
+
+
+```{r, fig.height=9, fig.width=9}
+pres_comp_zoom <- ggplot() +
+  geom_sf(data = world) +
+  geom_raster(data = stud_prob_pres_df, 
+            aes(x = x, y = y, fill = ensemble),
+            show.legend = F) +
+  geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             color = "orangered2",
+             pch = 19,
+             alpha = 0.8) +
+  scale_fill_viridis_c() +
+  coord_sf(xlim = c(-80, -30),
+           ylim = c(-10, 20),
+           expand = FALSE) +
+  labs(x = "",
+       y = "",
+       title = "Probability map S. tudes present",
+       fill = "Probability of occurrence") +
+  theme_bw() +
+  theme(axis.text = element_text(color = "black", size = 12))
+```
+
+
+```{r, fig.height=9, fig.width=9}
+pres_comp_zoom / 
+  future_comp_zoom
+```
+

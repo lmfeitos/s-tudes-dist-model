@@ -1,7 +1,7 @@
 ---
-title: "s_tudes_dist_model"
+title: "s_tudes_model_2040-2050"
 author: "Leonardo Feitosa"
-date: "15/01/2022"
+date: "28/01/2022"
 output: html_document
 ---
 
@@ -56,13 +56,13 @@ library(maptools)
 world_countries <- read_sf(here::here("data", "world_countries", "World_Countries.shp"))
 
 # read whole occurrence data 
-whole_occur_data_final <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";") %>%  
-  dplyr::select(long, lat)
+# whole_occur_data_final <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";") %>%  
+#   dplyr::select(long, lat)
 ``` 
 ## Load env layers
 
 ```{r}
-env_layers <- list.files(here::here("data", "raster_layers", "present"), pattern =".tif", full.names = TRUE)
+env_layers_future <- list.files(here::here("data", "raster_layers", "future"), pattern =".tif", full.names = TRUE)
 ```
 
 ```{r}
@@ -153,7 +153,7 @@ ggsave(here::here("outputs", "occurrence_map.png"), height = 8, width = 10)
 #list_layers(c("Bio-ORACLE", monthly = F, marine = TRUE))$layer_code
 
 # Load selected layers based on knowledge about the species biology
-#env_layers <- load_layers(c("BO2_salinitymean_bdmean", 
+#env_layers_future <- load_layers(c("BO2_salinitymean_bdmean", 
                             # "BO2_chlomean_bdmean", 
                             # "BO_bathymax", 
                             # "BO_bathymin",
@@ -181,21 +181,21 @@ ggsave(here::here("outputs", "occurrence_map.png"), height = 8, width = 10)
 # Wrangling layer data
 
 ```{r}
-predictors <- lapply(env_layers, raster)
+predictors_fut <- lapply(env_layers_future, raster)
 
-predictors <- stack(predictors)
+predictors_fut <- stack(predictors_fut)
 #determina as coordenadas para delimitar a extensao do mapa abaixo
 #coordenadas para analise em menor escala: (-80,-35,-10,20)
 map_extent <- extent(-120, 0, -80, 50) 
 
 #define a extensao (recorta a America do Sul)
-predictors <- crop(predictors, map_extent) 
+predictors_fut <- crop(predictors_fut, map_extent) 
 
 ```
 
 ```{r}
 #seleciona o plot para uma determinada variavel
-plot(predictors[[8]])
+plot(predictors_fut[[7]])
 
 #coloca os contornos no mapa
 map(add=T)
@@ -213,7 +213,7 @@ points(ocor, pch=20)
 repeticao = 20
 
 # extrai pontos de ocorrencias com as variaveis climaticas OBS: Longitude primeiro e depois latitude
-ocor.val <- extract(predictors, ocor, cell = T)
+ocor.val <- extract(predictors_fut, ocor, cell = T)
 
 # identificar células duplicadas
 id.dup <- duplicated(ocor.val[,"cells"])
@@ -233,25 +233,26 @@ ocor <- na.omit(ocor)
 # checar correlacao das variaveis
 variables <- ocor[,3:10]
 
-correlation <- (cor(variables)> 0.7)*1
+correlation_fut <- (cor(variables)> 0.7)*1
 
 #Transform correlation matrix into a df
-#correlation_df <- as.data.frame(correlation)
+correlation_fut_df <- as.data.frame(correlation_fut)
 
-#write_csv(correlation_df, path = here::here("data", "raster_layers", "present_env_layers_correlation_mtx2.csv"), col_names = T)
+write_csv(correlation_fut_df, 
+          path = here::here("data", "raster_layers", "future", "future_env_layers_future_correlation.csv"), col_names = T)
 ```
 
 - List of rasters to remove due to high correlation:
-benthic Current velocity range, light at bottom range, benthic silicate mean, surface current velocity range, surface iron range, benthic chlorophil range, benthic chlorophil mean, surface dissolved oxygen range, removed all range variables and mean benthic temperature 
+benthic future velocity range, benthic temperature mean and range, Current velocity range
 
 
 ### Background points
 
 ```{r}
-bg <- randomPoints(predictors, nrow(ocor), ext = map_extent)
+bg <- randomPoints(predictors_fut, nrow(ocor), ext = map_extent)
 
 # extracts cells chosen for absences
-back <- extract(predictors, bg)
+back <- extract(predictors_fut, bg)
 
 # Combines background coordinate points and extracted cells 
 back <- cbind(bg, back)
@@ -260,7 +261,7 @@ back <- cbind(bg, back)
 #points(bg, pch = 20, col = "red")
 
 
-data <- prepareData(x = predictors, p = ocor[, 1:2], b = back[, 1:2])
+data <- prepareData(x = predictors_fut, p = ocor[, 1:2], b = back[, 1:2])
 ```
 
 
@@ -280,8 +281,8 @@ bioclim.t <-gower.t<-maha.t<-maxent.t<-SVM.t<-GLM.t<-NULL
 ```{r}
 for(i in 1:20){
   id.treino<-sample(1:nrow(ocor),round(0.75*nrow(ocor),0))  ###0.75 ? pra pegar 75% dos pontos de ocorrencia pra treino, o round ? s? pra nao dar numero quebrado
-  treino<-prepareData(x = predictors, p = ocor[id.treino,1:2], b = back[id.treino,1:2])  ##o id.treino ta falando que ? pra pegar s? as linhas do id.treino
-  teste<-prepareData(x = predictors, p = ocor[-id.treino,1:2], b = back[-id.treino,1:2])  ##aqui o -id.treino ? pra tirar os usados no id.treino
+  treino<-prepareData(x = predictors_fut, p = ocor[id.treino,1:2], b = back[id.treino,1:2])  ##o id.treino ta falando que ? pra pegar s? as linhas do id.treino
+  teste<-prepareData(x = predictors_fut, p = ocor[-id.treino,1:2], b = back[-id.treino,1:2])  ##aqui o -id.treino ? pra tirar os usados no id.treino
   
   
   #1) Bioclim
@@ -291,7 +292,7 @@ for(i in 1:20){
   #plot(bioclim.modelo)
   #response(bioclim.modelo)
   #fazendo predi??es
-  bioclim0k<-stack(bioclim0k, predict(object=bioclim.modelo, x = predictors, progress='text'))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
+  bioclim0k<-stack(bioclim0k, predict(object=bioclim.modelo, x = predictors_fut, progress='text'))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
   #plot(bioclim0k)
   #map(add=T)
   #plot(bioclim0k>0.2) ###aqui ? prar binarizar, coloca o threshold para transformar s? em presen?a/ausencia
@@ -310,7 +311,7 @@ for(i in 1:20){
   gower.modelo <- domain(treino[treino[,"pb"]==1,-1]) ##aqui ta falando pra roda s? a coluna de treino que tenha 1(presen?a), o -1 da coluna ? pra tira a pb
   
   #fazendo predi??es
-  gower0k <- stack(gower0k, predict(object=gower.modelo, x = predictors, progress='text'))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
+  gower0k <- stack(gower0k, predict(object=gower.modelo, x = predictors_fut, progress='text'))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
   
   #plot(gower0k)
   #map(add=T)
@@ -325,7 +326,7 @@ for(i in 1:20){
   ####Ajustando o modelo
   maha.modelo <- mahal(treino[treino[,"pb"]==1,-1]) ##aqui ta falando pra roda s? a coluna de treino que tenha 1(presen?a), o -1 da coluna ? pra tira a pb
   #fazendo predi??es
-  maha0k <- stack(maha0k, predict(object=maha.modelo, x = predictors, progress='text'))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
+  maha0k <- stack(maha0k, predict(object=maha.modelo, x = predictors_fut, progress='text'))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
   #plot(maha0k)
   #map(add=T)
   
@@ -342,7 +343,7 @@ for(i in 1:20){
   
   maxent.modelo <- maxent(x=treino[,-1], p=treino[,1]) ###na primeira coluna indica presen?a e ausencia, e nas outras colunas os valores de variaveis ambientais.
   #fazendo predi??es
-  maxent0k <- stack(maxent0k,predict(object=maxent.modelo, x = predictors, progress='text' ))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
+  maxent0k <- stack(maxent0k,predict(object=maxent.modelo, x = predictors_fut, progress='text' ))  ###objto ? uma classe bioclim, maxent etc,e x ? o modelo clim?tico (e.g. 21k, 0 e rcp)
   #plot(maxent0k)
   
   ###Avaliando modelo
@@ -371,16 +372,18 @@ writeRaster(maxent0k, "maxent0k.bil", format = "EHdr", overwrite = T)
 
 # Write AUC table for all models
 write.table(data.frame(bioclim = bioclim.e, gower = gower.e, maha = maha.e,maxent = maxent.e),
-            here::here("data", "outputs", "tests_present", "AUC_comparison_pres_fut.txt"), sep = "\t", row.names = F)
+            here::here("data", "outputs", "future", "AUC_fut.txt"), sep = "\t", row.names = F)
 write.table(data.frame(bioclim = bioclim.t, gower = gower.t, maha = maha.t,maxent = maxent.t),
-            here::here("data", "outputs", "tests_present", "Thresh_comparison_pres_fut.txt"), sep = "\t", row.names = F)
+            here::here("data", "outputs", "future", "Threshold_fut.txt"), sep = "\t", row.names = F)
 ```
 
 # Part 2
 
+setwd("~/BACKUP NOTEBOOK/DOCUMENTS/Leonardo/Mestrado UFPE/Projeto Mestrado UFPE/Projeto C. porosus/Cap?tulo 1/Mestrado - Leo/outputsleo")
+auc<-read.table("AUC.txt", h=T)
 ```{r}
 # reading the table with AUC values for each model
-auc <- read.table(here::here("data", "outputs", "tests_present", "AUC_comparison_pres_fut.txt"), h = T)
+auc <- read.table(here::here("data", "outputs", "future", "AUC_fut.txt"), h = T)
 
 # Gensemble
 gensemble <- vector(mode = "list", length = 1)
@@ -470,20 +473,20 @@ gensemble[[1]] <- ensemble>= valm2
 ```{r}
 # Tif 1
 writeRaster(x = gensemble[[1]], 
-            filename = file.path(here::here("data", "outputs", "present","ensemble_stud_binary_present_comparison.tif"), sep=""),
-            format = 'GTiff', overwrite=T)
+            filename = file.path(here::here("data", "outputs", "future", "ensemble_stud_binary_future.tif"),
+                                                     sep=""), format = 'GTiff', overwrite=T)
 plot(ensemble)
 writeRaster(x = ensemble, 
-            filename = file.path(here::here("data", "outputs", "present", "ensemble_stud_prob_present_comparison.tif"), sep=""), 
-            format = 'GTiff', overwrite=T)
+            filename = file.path(here::here("data", "outputs", "future", "ensemble_stud_prob_future.tif"),
+                                               sep=""), format = 'GTiff', overwrite=T)
 
-tiff(file="ensembled_binary_pres_comparison.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensembled_binary_future.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(gensemble[[1]])
 points(ocor, pch=20) 
 map(add=T)
 dev.off()
 
-tiff(file="ensembled_prob_pres_comparison.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensembled_prob_future.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(ensemble)
 points(ocor, pch=20) #inserir pontos de ocorr?ncia no mapa
 map(add=T)
@@ -491,7 +494,7 @@ dev.off()
 
 e <- extent(-80,-30,-10,20) 
 fig.menor <- crop(ensemble, e)
-tiff(file="ensemble_prob_smaller_pres_comparison.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensemble_prob_smaller_future.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(fig.menor)
 points(ocor, pch=20) #inserir pontos de ocorr?ncia no mapa
 map(add=T)
@@ -499,4 +502,19 @@ dev.off()
 
 ```
 
+## Read back in the rasters written above
+
+```{r}
+# Binary map
+stud_bin_pres <- raster::raster(here::here("data", "outputs", "future", "ensemble_stud_binary_future.tif"))
+# Probabilty map
+stud_prob_pres <- raster::raster(here::here("data", "outputs", "future", "ensemble_stud_prob_future.tif"))
+
+# Create df from rasters
+stud_bin_pres_df <- as.data.frame(stud_bin_pres, xy = TRUE) 
+
+stud_prob_pres_df <- as.data.frame(stud_prob_pres, xy = TRUE) 
+```
+
+```
 
