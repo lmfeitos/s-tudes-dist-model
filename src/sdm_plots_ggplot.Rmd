@@ -12,9 +12,24 @@ library(here)
 library(sf)
 library(raster)
 library(patchwork)
+library(rnaturalearth)
 ```
 
+```{r}
+# Set directories
+basedir <- "G:/Meu Drive/S. tudes/data/"
+presdir <- file.path(basedir, "raster_layers", "present") # calls present data from raster files
+futdir <- file.path(basedir, "raster_layers", "future") # calls future data from raster files
+outdir <- file.path(basedir, "outputs") # sends plots to the output folder
+occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
+vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
+shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
+```
 
+```{r}
+# test
+df_orig <- raster::raster(file.path(presdir, "Present.Benthic.Mean.Depth.Dissolved.oxygen.Mean.tif")) 
+```
 
 
 ```{r}
@@ -170,11 +185,11 @@ stud_prob_pres <- raster::raster(here::here("data", "outputs", "present", "ensem
 
 # load shape files
 ## world countries
-world <- read_sf(here::here("data", "shape_files", "world_countries", "World_Countries.shp"))
-
+world <- ne_countries(scale = "medium", returnclass = "sf")
+#read_sf(here::here("data", "shape_files", "world_countries", "World_Countries.shp"))
 # Sphyrna tudes IUCN distribution map 
-stud_dist_IUCN <- read_sf(here::here("data", "shape_files", "stud", "data_0.shp")) %>% 
-  as.data.frame()
+# stud_dist_IUCN <- read_sf(here::here("data", "shape_files", "stud", "data_0.shp")) %>% 
+#   as.data.frame()
 
 # Bathymetry layers
 bathy_0 <- read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_L_0.shp"))
@@ -189,7 +204,7 @@ bathy_5k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_
 ```{r}
 # Check the CRS for the world and stud_dist_IUCN shape files
 world %>% st_crs() # WGS 84, CRS = 4326
-stud_dist_IUCN %>% st_crs() # WGS 84, CRS = 4326
+#stud_dist_IUCN %>% st_crs() # WGS 84, CRS = 4326
 ```
 
 
@@ -252,6 +267,20 @@ stud_prob_pres_df <- raster::rasterToPoints(stud_prob_pres) %>%
   # scale_color_gradient(low = "steelblue1", high = "royalblue4",
   #                     breaks = seq(200, 5000, by = 2400),
   #                     labels = c("<200", "2600", "5000")) +
+```
+
+```{r}
+bathy_200_geo <- bathy_200 %>% 
+  st_drop_geometry()
+```
+
+
+```{r}
+ggplot(data = bathy_200 %>% ) +
+  geom_sf(fill = NA) +
+  coord_sf(xlim = c(-120, -20),
+           ylim = c(-60, 50),
+           expand = FALSE)
 ```
 
 
@@ -372,6 +401,9 @@ present_comp <- ggplot() +
   plot_layout(widths = c(3,3),
               heights = c(3,3))
 
+ggsave(here::here("data", "outputs", "composite_figures_for_present_and_future_maps_for_comparison.png"),
+       width = 11, height = 11, dpi = 300)
+
 ggsave(here::here("data", "outputs", "composite_figures_for_present_and_future_maps_for_comparison.tiff"), 
        width = 11, height = 11, compression = "lzw", dpi = 300)
 ```
@@ -438,6 +470,9 @@ pres_comp_zoom <-
 ```{r, fig.height=9, fig.width=9}
 pres_comp_zoom / 
   future_comp_zoom
+
+ggsave(here::here("data", "outputs", "composite_figures_for_suitability_pres_and_future_zoom.png"),
+       width = 11, height = 11, dpi = 300)
 
 ggsave(here::here("data", "outputs", "composite_figures_for_suitability_pres_and_future_zoom.tiff"), 
        width = 10, height = 10, compression = "lzw", dpi = 300)
@@ -529,6 +564,9 @@ prob_pres_zoom <- ggplot() +
   prob_pres_zoom +
   plot_layout(widths = c(2,2),
               heights = c(2,2))
+
+ggsave(here::here("data", "outputs", "composite_of_present_models_with_all_vars.png"),
+       width = 11, height = 11, dpi = 300)
 
 ggsave(here::here("data", "outputs", "composite_of_present_models_with_all_vars.tiff"), width = 10, height = 10, compression = "lzw", dpi = 300)
 ```

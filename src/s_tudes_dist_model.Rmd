@@ -11,6 +11,7 @@ library(tidyverse)
 library(here)
 library(vegan)
 library(raster)
+library(rgdal)
 library(dismo)
 library(maps)
 library(kernlab)
@@ -20,6 +21,18 @@ library(maptools)
 library(sdmpredictors)
 library(usdm)
 library(googlesheets4)
+```
+
+
+```{r}
+# set directories
+basedir <- "G:/Meu Drive/S. tudes/data/"
+presdir <- file.path(basedir, "raster_layers", "present") # calls present data from raster files
+futdir <- file.path(basedir, "raster_layers", "future") # calls future data from raster files
+outdir <- file.path(basedir, "outputs") # sends plots to the output folder
+occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
+vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
+shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
 ```
 
 ## Read in the data
@@ -149,51 +162,8 @@ ggsave(here::here("outputs", "occurrence_map.png"), height = 8, width = 10)
 #   kable_classic(bootstrap_options = "striped", full_width = F)
 ```
 
-## loading biooracle data
 
-```{r}
-# Check for layer codes from Bio-ORACLE
-list_layers(c("Bio-ORACLE", monthly = F, marine = TRUE))$layer_code
 
-# Load selected layers based on knowledge about the species biology
-env_layers <- load_layers(c("BO21_salinitymean_bdmin",
-                            "BO21_salinitymean_bdmin",
-                            "BO21_salinitymean_ss",
-                            "BO21_salinityrange_ss",
-                            "BO21_tempmean_ss",
-                            "BO21_temprange_ss",
-                            "BO21_tempmean_bdmin",
-                            "BO21_tempmean_bdmin",
-                            "BO21_chlomean_ss",
-                            "BO21_chlorange_ss",
-                            "BO21_dissoxmean_bdmin",
-                            "BO21_dissoxmean_bdmin",
-                            "BO21_dissoxmean_ss",
-                            "BO21_dissoxrange_ss",
-                            "BO21_lightbotmean_bdmin",
-                            "BO21_lightbotmean_bdmin",
-                            "BO21_curvelmean_ss",
-                            "BO21_curvelrange_ss",
-                            "BO21_curvelmean_bdmin",
-                            "BO21_curvelrange_bdmin",
-                            "BO_cloudmean"))
-
-# Layers from the future
-list_layers_future(terrestrial = FALSE)
-
-env_layers_future <- load_layers(c("BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinityrange_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax",
-                                   "BO21_RCP45_2050_salinitymean_bdmax"))
-```
 
 
 # Wrangling layer data
@@ -211,16 +181,51 @@ predictors <- crop(predictors, map_extent)
 
 ```
 
+# Checking for the range values of each environmental layer
+
 ```{r}
 #seleciona o plot para uma determinada variavel
-plot(predictors[[5]])
-
-#coloca os contornos no mapa
+plot(predictors[[1]]) # Benthic mean dissolved oxygen
 map(add=T)
-
-#inserir pontos de ocorrencia no mapa
 points(ocor, pch=20) 
 
+
+plot(predictors[[2]]) # Benthic mean light at bottom
+map(add=T)
+points(ocor, pch=20) 
+
+plot(predictors[[3]]) # Benthic mean salinity
+map(add=T)
+points(ocor, pch=20) 
+
+
+plot(predictors[[4]]) # Surface mean chlorophyll
+map(add=T)
+points(ocor, pch=20) 
+
+plot(predictors[[5]]) # Surface mean cloud cover
+map(add=T) # This is the only layer with values between 0 and 1
+points(ocor, pch=20) 
+
+plot(predictors[[6]]) # Surface mean current velocity
+map(add=T)
+points(ocor, pch=20) 
+
+plot(predictors[[7]]) # Surface mean dissolved oxygen
+map(add=T)
+points(ocor, pch=20) 
+
+plot(predictors[[8]]) # Surface mean salinity
+map(add=T)
+points(ocor, pch=20) 
+
+plot(predictors[[9]]) # Surface mean temperature
+map(add=T)
+points(ocor, pch=20) 
+
+plot(predictors[[10]]) # Surface temperature range
+map(add=T)
+points(ocor, pch=20) 
 ```
 
 
@@ -249,7 +254,7 @@ ocor <- na.omit(ocor)
 
 ```{r}
 # checar correlacao das variaveis
-variables <- ocor[,3:12]
+variables <- ocor[,3:19]
 
 correlation <- (cor(variables)> 0.7)*1
 
@@ -262,6 +267,14 @@ usdm::vif(variables)
 variables2 <- vifstep(variables, th = 10) 
 variables2 
 
+variables3 <- vifcor(variables, th = 0.1)
+variables3
+# Variable removed after collinearity analysis:
+# - surface salinity mean
+# - Benthic Salinity range
+# - Surface temperature mean
+# - Surface temperature range
+# - Surface salinity range
 
 #Transform correlation matrix into a df
 #correlation_df <- as.data.frame(correlation)
@@ -269,8 +282,7 @@ variables2
 #write_csv(correlation_df, path = here::here("data", "raster_layers", "present_env_layers_correlation_mtx2.csv"), col_names = T)
 ```
 
-- List of rasters to remove due to high correlation:
-benthic Current velocity range, light at bottom range, benthic silicate mean, surface current velocity range, surface iron range, benthic chlorophil range, benthic chlorophil mean, surface dissolved oxygen range, removed all range variables and mean benthic temperature 
+
 
 
 ### Background points
