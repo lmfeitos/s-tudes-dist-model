@@ -1,0 +1,9 @@
+X2050AOGCM.RCP45.Benthic.Mean.Depth.Current.Velocity.Mean.tif.BOv2_1,X2050AOGCM.RCP45.Benthic.Mean.Depth.Salinity.Mean.tif.BOv2_1,X2050AOGCM.RCP45.Benthic.Mean.Depth.Salinity.Range.tif.BOv2_1,X2050AOGCM.RCP45.Surface.Current.Velocity.Mean.tif.BOv2_1,X2050AOGCM.RCP45.Surface.Salinity.Mean.tif.BOv2_1,X2050AOGCM.RCP45.Surface.Salinity.Range.tif.BOv2_1,X2050AOGCM.RCP45.Surface.Temperature.Mean.tif.BOv2_1,X2050AOGCM.RCP45.Surface.Temperature.Range.tif.BOv2_1
+1,0,0,0,0,0,0,0
+0,1,0,0,0,0,0,0
+0,0,1,0,0,0,0,0
+0,0,0,1,0,0,0,0
+0,0,0,0,1,0,0,0
+0,0,0,0,0,1,0,0
+0,0,0,0,0,0,1,0
+0,0,0,0,0,0,0,1

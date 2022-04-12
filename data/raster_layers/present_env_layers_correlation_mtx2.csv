@@ -1,0 +1,10 @@
+;Present.Benthic.Mean.Depth.Dissolved.oxygen.Mean;Present.Benthic.Mean.Depth.Light.bottom.Mean;Present.Benthic.Mean.Depth.Salinity.Mean;Present.Surface.Chlorophyll.Mean;Present.Surface.Cloud.cover.Mean.BOv2_2;Present.Surface.Current.Velocity.Mean.tif.BOv2_1;Present.Surface.Dissolved.oxygen.Mean;Present.Surface.Salinity.Mean;Present.Surface.Temperature.Mean
+Present.Benthic.Mean.Depth.Dissolved.oxygen.Mean;1;0;0;0;0;0;0;0;0
+Present.Benthic.Mean.Depth.Light.bottom.Mean;0;1;0;0;0;0;0;0;0
+Present.Benthic.Mean.Depth.Salinity.Mean;0;0;1;0;0;0;0;0;0
+Present.Surface.Chlorophyll.Mean;0;0;0;1;0;0;0;0;0
+Present.Surface.Cloud.cover.Mean.BOv2_2;0;0;0;0;1;0;0;0;0
+Present.Surface.Current.Velocity.Mean.tif.BOv2_1;0;0;0;0;0;1;0;0;0
+Present.Surface.Dissolved.oxygen.Mean;0;0;0;0;0;0;1;0;0
+Present.Surface.Salinity.Mean;0;0;0;0;0;0;0;1;0
+Present.Surface.Temperature.Mean;0;0;0;0;0;0;0;0;1
