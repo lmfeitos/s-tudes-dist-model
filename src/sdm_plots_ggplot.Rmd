@@ -13,6 +13,7 @@ library(sf)
 library(raster)
 library(patchwork)
 library(rnaturalearth)
+library(MetBrewer)
 ```
 
 ```{r}
@@ -24,6 +25,7 @@ outdir <- file.path(basedir, "outputs") # sends plots to the output folder
 occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
 vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
 shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
+resultdir <- file.path("results")
 ```
 
 ```{r}
@@ -34,7 +36,7 @@ df_orig <- raster::raster(file.path(presdir, "Present.Benthic.Mean.Depth.Dissolv
 
 ```{r}
 ## Read in the data from the test models for variable importance
-vars <- list.files(here::here("data", "outputs", "tests_present"),
+vars <- list.files(file.path(outdir, "tests_present"),
                    pattern = ".csv",
                    full.names = TRUE)
 
@@ -50,10 +52,12 @@ vars_long <- vars_tbl %>%
                values_to = "auc")
 
 ## Read in the data from final model
-model_final <- read.csv(here::here("data", "outputs", "present", "auc_present.csv"), sep = ";") %>% 
+model_final <- read_csv(file.path(outdir, "auc_present.csv")) %>% 
   pivot_longer(cols = bioclim:maxent,
                names_to = "algorithm",
-               values_to = "auc")
+               values_to = "auc") %>% 
+  mutate(variable = "full_model") %>% 
+  relocate(variable, .before = algorithm)
 ```
 
 ```{r}
@@ -69,7 +73,7 @@ final_summary <- model_final %>%
   summarise(mean_auc = mean(auc),
             sd_auc = sd(auc))
 
-summary_df <- full_join(vars_summary, final_summary, by = c("variable", "algorithm", "mean_auc", "sd_auc"))
+summary_df <- full_join(vars_summary, final_summary, by = c("variable", "algorithm", "mean_auc", "sd_auc")) 
 
 
 summary_df_wide <- summary_df %>% 
@@ -84,23 +88,45 @@ write_csv(summary_df_wide, path = here::here("data", "outputs", "tests_present",
 ```
 
 ```{r, fig.width=10, fig.height=8}
-ggplot(data = vars_summary) +
+summary_df %>% 
+    mutate(variable = case_when(
+    variable == "mean_surf_temp" ~ "Surface Temperature (mean)",
+    variable == "mean_surf_sal" ~ "Surface Salinity (mean)",
+    variable == "mean_surf_DO" ~ "Surface Dissolved Oxygen (mean)",
+    variable == "mean_surf_curr" ~ "Surface Current (mean)",
+    variable == "mean_surf_chla" ~ "Surface Chlorophyll A (mean)",
+    variable == "mean_light_bot" ~ "Light at bottom (mean)",
+    variable == "mean_cloud" ~ "Cloud cover (mean)",
+    variable == "full_model" ~ "Full model",
+    variable == "benthic_mean_DO" ~ "Benthic Dissolved Oxygen (mean)",
+    variable == "bent_mean_sal" ~ "Benthic Salinity (mean)",
+  )) %>% 
+  mutate(algorithm = str_to_sentence(algorithm)) %>% 
+  mutate(algorithm = case_when(
+    algorithm == "Maha" ~ "Mahalanobis",
+    TRUE ~ algorithm
+  )) %>% 
+ggplot() +
   geom_point(aes(x = variable, y = mean_auc, color = algorithm),
              show.legend = F,
              size = 2) +
-  geom_errorbar(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc),
-                size = 0.6) +
-  geom_hline(yintercept = 0.938688, 
-             size = 1,
-             color = "coral2",
-             alpha = 0.6) +
+  geom_linerange(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc, color = algorithm),
+                size = 0.6,
+                show.legend = F) +
   facet_wrap(~ algorithm) +
   labs(x = "",
        y = "Mean AUC") +
+  scale_color_manual(values = met.brewer("Java", 4)) +
   coord_flip() +
   theme_bw() +
   theme(axis.title = element_text(size = 12, color = "black"),
-        axis.text = element_text(size = 10, color = "black"))
+        axis.text = element_text(size = 10, color = "black"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        strip.background = element_rect(fill = "transparent"),
+        strip.text = element_text(color = "black", size = 12))
+
+ggsave(file.path(outdir, "variable_test.png"), width = 8, height = 10, dpi = 300)
 ```
 
 

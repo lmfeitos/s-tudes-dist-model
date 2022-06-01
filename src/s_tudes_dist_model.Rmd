@@ -21,6 +21,7 @@ library(maptools)
 library(sdmpredictors)
 library(usdm)
 library(googlesheets4)
+library(tabulizer)
 ```
 
 
@@ -33,9 +34,16 @@ outdir <- file.path(basedir, "outputs") # sends plots to the output folder
 occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
 vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
 shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
+pdfdir <- file.path(basedir, "papers") # calls the .pdf files to extract tables from
 ```
 
 ## Read in the data
+
+```{r pdf file test}
+suri_pdf <- extract_tables(here::here("data", "project_global_country_profile_suriname_draft.pdf"), pages = 16)
+
+```
+
 
 ```{r}
 # Load occurrence data
