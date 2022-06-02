@@ -19,8 +19,9 @@ library(MetBrewer)
 ```{r}
 # Set directories
 basedir <- "G:/Meu Drive/S. tudes/data/"
-presdir <- file.path(basedir, "raster_layers", "present") # calls present data from raster files
-futdir <- file.path(basedir, "raster_layers", "future") # calls future data from raster files
+rasterdir <- file.path(basedir, "raster_layers") # calls raster layers
+presdir <- file.path(basedir, "present") # calls present data from raster files
+futdir <- file.path(basedir, "future") # calls future data from raster files
 outdir <- file.path(basedir, "outputs") # sends plots to the output folder
 occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
 vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
@@ -84,10 +85,10 @@ summary_df_wide <- summary_df %>%
   relocate(sd_auc_maha, .after = mean_auc_maha) %>% 
   relocate(sd_auc_maxent, .after = mean_auc_maxent)
 
-write_csv(summary_df_wide, path = here::here("data", "outputs", "tests_present", "summary_stats_tests.csv"), col_names = T)
+#write_csv(summary_df_wide, path = here::here("data", "outputs", "tests_present", "summary_stats_tests.csv"), col_names = T)
 ```
 
-```{r, fig.width=10, fig.height=8}
+```{r, fig.width=7, fig.height=4.5}
 summary_df %>% 
     mutate(variable = case_when(
     variable == "mean_surf_temp" ~ "Surface Temperature (mean)",
@@ -113,10 +114,11 @@ ggplot() +
   geom_linerange(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc, color = algorithm),
                 size = 0.6,
                 show.legend = F) +
-  facet_wrap(~ algorithm) +
+  facet_wrap(~ algorithm, nrow = 1) +
   labs(x = "",
        y = "Mean AUC") +
   scale_color_manual(values = met.brewer("Java", 4)) +
+  scale_y_continuous(breaks = seq(0.6, 1, by = 0.2)) +
   coord_flip() +
   theme_bw() +
   theme(axis.title = element_text(size = 12, color = "black"),
@@ -124,9 +126,11 @@ ggplot() +
         panel.grid.minor = element_blank(),
         panel.grid.major.x = element_blank(),
         strip.background = element_rect(fill = "transparent"),
-        strip.text = element_text(color = "black", size = 12))
+        strip.text = element_text(color = "black", size = 12),
+        panel.spacing.x = unit(2, "mm"))
 
-ggsave(file.path(outdir, "variable_test.png"), width = 8, height = 10, dpi = 300)
+
+ggsave(file.path(outdir, "variable_test2.png"), width = 7, height = 4.5, dpi = 300)
 ```
 
 
@@ -192,22 +196,22 @@ ggplot(data = vars_summary %>% filter(algorithm == "maxent")) +
 
 ```{r}
 # ocor dataset
-ocor <- read.csv(here::here("data", "occurrences", "occurrence_data.csv"), sep = ";") %>% 
+ocor <- read.csv(file.path(occurdir, "occurrence_data.csv"), sep = ";") %>% 
   dplyr::select(long, lat)
 # Binary map
-stud_bin_future <- raster::raster(here::here("data", "outputs", "future", "ensemble_stud_binary_future.tif"))
+#stud_bin_future <- raster::raster(file.path(futdir, "ensemble_stud_binary_future.tif"))
 # Probabilty map
-stud_prob_future <- raster::raster(here::here("data", "outputs", "future", "ensemble_stud_prob_future.tif"))
+#stud_prob_future <- raster::raster(file.path(futdir, "ensemble_stud_prob_future.tif"))
 
 # Binary map
-stud_bin_pres_comp <- raster::raster(here::here("data", "outputs", "present", "ensemble_stud_binary_present_comparison.tif"))
+#stud_bin_pres_comp <- raster::raster(file.path(presdir, "ensemble_stud_binary_present_comparison.tif"))
 # Probabilty map
-stud_prob_pres_comp <- raster::raster(here::here("data", "outputs", "present", "ensemble_stud_prob_present_comparison.tif"))
+#stud_prob_pres_comp <- raster::raster(file.path(presdir, "ensemble_stud_prob_present_comparison.tif"))
 
 # Binary map
-stud_bin_pres <- raster::raster(here::here("data", "outputs", "present", "ensemble_stud_binary_present.tif"))
+stud_bin_pres <- raster::raster(file.path(presdir, "ensemble_stud_binary_present.tif"))
 # Probabilty map
-stud_prob_pres <- raster::raster(here::here("data", "outputs", "present", "ensemble_stud_prob_present.tif"))
+stud_prob_pres <- raster::raster(file.path(presdir, "ensemble_stud_prob_present.tif"))
 
 # load shape files
 ## world countries
@@ -218,13 +222,13 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 #   as.data.frame()
 
 # Bathymetry layers
-bathy_0 <- read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_L_0.shp"))
-bathy_200<-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_K_200.shp"))
-bathy_1k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_J_1000.shp"))
-bathy_2k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_I_2000.shp"))
-bathy_3k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_H_3000.shp"))
-bathy_4k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_G_4000.shp"))
-bathy_5k <-read_sf(here("data", "shape_files", "bathymetry", "ne_10m_bathymetry_F_5000.shp"))
+#bathy_0 <- read_sf(file.path(shapedir, "ne_10m_bathymetry_L_0.shp"))
+bathy_200<-read_sf(file.path(shapedir, "bathymetry", "ne_10m_bathymetry_K_200.shp"))
+# bathy_1k <-read_sf(file.path(shapedir, "ne_10m_bathymetry_J_1000.shp"))
+# bathy_2k <-read_sf(file.path(shapedir, "ne_10m_bathymetry_I_2000.shp"))
+# bathy_3k <-read_sf(file.path(shapedir, "ne_10m_bathymetry_H_3000.shp"))
+# bathy_4k <-read_sf(file.path(shapedir, "ne_10m_bathymetry_G_4000.shp"))
+# bathy_5k <-read_sf(file.path(shapedir, "ne_10m_bathymetry_F_5000.shp"))
 ```
 
 ```{r}
@@ -506,30 +510,40 @@ ggsave(here::here("data", "outputs", "composite_figures_for_suitability_pres_and
 
 
 ```{r}
-bin_pres <- ggplot() +
-  geom_sf(data = world,
-          color = "black") +
+bin_pres <-
+  ggplot() +
   geom_raster(data = stud_bin_pres_df,
-              aes(x = x, y = y, fill = ensemble)) +
-  scale_fill_gradient2(breaks = seq(0, 1, by = 1),
-                       labels = c("None", "High")) +
-  geom_point(data = ocor, 
+              aes(x = x, y = y, fill = factor(ensemble))) +
+  geom_sf(data = world) +
+  # geom_sf(data = bathy_200,
+  #         fill = NA,
+  #         color = "black") +
+   geom_point(data = ocor, 
              aes(x = long, y = lat),
              pch = 21,
              fill = "maroon2",
              color = "black",
-             alpha = 0.8,
-             size = 2) +
-  coord_sf(xlim = c(-120, -20),
+             alpha = 0.5,
+             size = 1.5) +
+    geom_text() +
+  annotate("text", label = "A",
+           x = -104, y = 46, size = 5, color = "black") +
+  scale_fill_manual(values = c("white", "#005AB5"),
+                    labels = c("Not suitable", "Suitable")) +
+  coord_sf(xlim = c(-108, -25),
            ylim = c(-60, 50),
            expand = FALSE) +
   labs(x = "",
        y = "",
-       fill = "Suitability",
-       title = "Binary map S. tudes present") +
+       fill = "") +
   theme_bw() +
-  theme(axis.text = element_text(color = "black", size = 11))
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.key = element_rect(color = "black", size = 1),
+        legend.position = c(.2, .2),
+        legend.background = element_rect(fill = "transparent"))
 ```
+
 
 
 ```{r}
@@ -538,66 +552,123 @@ prob_pres <-
   geom_raster(data = stud_prob_pres_df, 
             aes(x = x, y = y, fill = ensemble)) +
   geom_sf(data = world) +
-  geom_sf(data = bathy_200, fill = NA,
-          color = "black") +
+  # geom_sf(data = bathy_200, fill = NA,
+  #         color = "black") +
   geom_point(data = ocor, 
              aes(x = long, y = lat),
              pch = 21,
              fill = "maroon2",
              color = "black",
-             alpha = 0.8,
-             size = 2) +
-  scale_fill_viridis_c(breaks = seq(0, 12, by = 12),
+             alpha = 0.5,
+             size = 1.5) +
+  geom_text() +
+  annotate("text", label = "B",
+           x = -104, y = 46, size = 5, color = "black") +
+  scale_fill_viridis_c(breaks = seq(0, 18, by = 16),
                        labels = c("Low", "High")) +
-  coord_sf(xlim = c(-120, -20),
+  coord_sf(xlim = c(-108, -25),
            ylim = c(-60, 50),
            expand = FALSE) +
   labs(x = "",
        y = "",
-       fill = "Suitability",
-       title = "Probability map S. tudes present") +
+       fill = "Suitability") +
   theme_bw() +
-  theme(axis.text = element_text(color = "black", size = 11))
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = c(.15, .2),
+        legend.background = element_rect(fill = "transparent"),
+        legend.text = element_text(color = "white"),
+        legend.title = element_text(color = "white")) +
+  guides(fill = guide_colourbar(ticks = F,
+                                barwidth = 0.8))
 ```
 
 
 ```{r}
-prob_pres_zoom <- ggplot() +
+prob_pres_zoom <- 
+  ggplot() +
   geom_sf(data = world) +
   geom_raster(data = stud_prob_pres_df, 
             aes(x = x, y = y, fill = ensemble)) +
   geom_point(data = ocor, 
              aes(x = long, y = lat),
-             color = "orangered2",
-             pch = 19,
-             alpha = 0.8) +
-  scale_fill_viridis_c(breaks = seq(0, 12, by = 12),
+             pch = 21,
+             fill = "maroon2",
+             color = "black",
+             alpha = 0.5,
+             size = 1.5) +
+  scale_fill_viridis_c(breaks = seq(0, 18, by = 17),
                        labels = c("Low", "High")) +
   coord_sf(xlim = c(-80, -30),
            ylim = c(-10, 20),
            expand = FALSE) +
   labs(x = "",
        y = "",
-       fill = "Suitability",
-       title = "Probability map S. tudes present") +
+       fill = "Suitability") +
   theme_bw() +
-  theme(axis.text = element_text(color = "black", size = 11))
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = c(.88, .75),
+        legend.background = element_rect(fill = "transparent"),
+        legend.text = element_text(color = "white"),
+        legend.title = element_text(color = "white")) +
+  guides(fill = guide_colorbar(ticks = F,
+                               barwidth = 0.8))
+```
+
+```{r}
+bin_pres_zoom <- 
+  ggplot() +
+  geom_raster(data = stud_bin_pres_df, 
+            aes(x = x, y = y, fill = factor(ensemble))) +
+  geom_sf(data = world,
+           color = "black") +
+  # geom_sf(data = bathy_200,
+  #         fill = NA,
+  #         color = "black") +
+  geom_point(data = ocor, 
+             aes(x = long, y = lat),
+             pch = 21,
+             color = "black",
+             fill = "maroon2",
+             alpha = 0.5,
+             size = 1.5) +
+  scale_fill_manual(values = c("white", "#005AB5"),
+                    labels = c("Not suitable", "Suitable")) +
+  coord_sf(xlim = c(-80, -30),
+           ylim = c(-10, 20),
+           expand = FALSE) +
+  labs(x = "",
+       y = "",
+       fill = "") +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.key = element_rect(color = "black", size = 1),
+        legend.position = c(.88, .75))
 ```
 
 
 ```{r, fig.height=9, fig.width=9}
-(bin_pres + prob_pres) /
-  prob_pres_zoom +
-  plot_layout(widths = c(2,2),
-              heights = c(2,2))
+bin_pres +
+  prob_pres 
 
-ggsave(here::here("data", "outputs", "composite_of_present_models_with_all_vars.png"),
-       width = 11, height = 11, dpi = 300)
+ggsave(file.path(outdir, "composite_of_present_models_with_all_vars.png"),
+       width = 11, height = 9, dpi = 300)
 
-ggsave(here::here("data", "outputs", "composite_of_present_models_with_all_vars.tiff"), width = 10, height = 10, compression = "lzw", dpi = 300)
+#ggsave(here::here("data", "outputs", "composite_of_present_models_with_all_vars.tiff"), width = 10, height = 10, compression = "lzw", dpi = 300)
 ```
 
 
+```{r, fig.height=9, fig.width=9}
+bin_pres_zoom /
+  prob_pres_zoom +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag.position = c(0, 1.02))
+
+ggsave(file.path(outdir, "zoom_composite_of_present_models_with_all_vars.png"),
+       width = 11, height = 9, dpi = 300)
+```
 
 
 
