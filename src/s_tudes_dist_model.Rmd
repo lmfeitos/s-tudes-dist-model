@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(janitor)
 library(here)
 library(vegan)
 library(raster)
@@ -28,8 +29,7 @@ library(tabulizer)
 ```{r}
 # set directories
 basedir <- "G:/Meu Drive/S. tudes/data/"
-presdir <- file.path(basedir, "raster_layers", "present") # calls present data from raster files
-futdir <- file.path(basedir, "raster_layers", "future") # calls future data from raster files
+presdir <- file.path(basedir, "raster_layers_updated") # calls present data from raster files
 outdir <- file.path(basedir, "outputs") # sends plots to the output folder
 occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
 vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
@@ -86,12 +86,12 @@ whole_occur_data_final <- read.csv(here::here("data", "occurrences", "occurrence
 ## Load env layers
 
 ```{r}
-env_layers <- list.files(here::here("data", "raster_layers", "present"), pattern =".tif", full.names = TRUE)
+env_layers <- list.files(file.path(presdir, "used"), pattern =".tif", full.names = TRUE)
 ```
 
 ```{r}
 #read in the data in .txt
-ocor <- read.table(here::here("data", "occurrences", "occurrence_data.txt"), h = T)
+ocor <- read.table(file.path(occurdir, "occurrence_data.txt"), h = T)
 ```
 
 
@@ -262,14 +262,14 @@ ocor <- na.omit(ocor)
 
 ```{r}
 # checar correlacao das variaveis
-variables <- ocor[,3:19]
+variables <- ocor[,3:12]
 
 correlation <- (cor(variables)> 0.7)*1
 
 # calling package "usdm" to calculate collinearity between environmental variables
 library(usdm)
 
-usdm::vif(variables)
+#usdm::vif
 
 # variables that should be excluded based on vif >= 10
 variables2 <- vifstep(variables, th = 10) 
@@ -287,10 +287,44 @@ variables3
 #Transform correlation matrix into a df
 #correlation_df <- as.data.frame(correlation)
 
-#write_csv(correlation_df, path = here::here("data", "raster_layers", "present_env_layers_correlation_mtx2.csv"), col_names = T)
+#write_csv(correlation_df, file.path(presdir, "env_layers_correlation.csv"), col_names = T)
 ```
 
+- Variables with high correlation based on the cor() function: Benthic current velocity mean and range, benthic light at bottom mean and range, benthic primary productivity mean and range, benthic temperature mean and surface temperature mean, benthic temperature range and surface temperature range, cloud cover and surface salinity range, surface dissolved oxygen range and surface salinity range, and surface primary productivity mean and range.
 
+Variables chosen:
+- Benthic mean current velocity
+- Benthic light at bottom range
+- Benthic primary productivity mean
+- Benthic dissolved oxygen mean
+- Benthic salinity mean
+- Benthic salinity range
+- Surface temperature mean
+- Surface temperature range
+- Surface salinity mean
+- Surface dissolved oxygen range
+- Surface dissolved oxygen mean
+- surface primary productivity mean
+- Surface pH
+
+
+- Variables removed after vifstep() function:
+- Surface dissolved oxygen mean
+- Benthic salinity range
+- Surface temperature mean
+
+
+##### FINAL LIST OF VARIABLES EMPLOYED
+- Benthic mean current velocity
+- Benthic light at bottom range
+- Benthic primary productivity mean
+- Benthic dissolved oxygen mean
+- Benthic salinity mean
+- Surface temperature range
+- Surface salinity mean
+- Surface dissolved oxygen range
+- surface primary productivity mean
+- Surface pH
 
 
 ### Background points
@@ -419,16 +453,16 @@ writeRaster(maxent0k, "maxent0k.bil", format = "EHdr", overwrite = T)
 
 # Write AUC table for all models
 write.table(data.frame(bioclim = bioclim.e, gower = gower.e, maha = maha.e,maxent = maxent.e),
-            here::here("data", "outputs", "tests_present", "AUC_comparison_pres_fut.txt"), sep = "\t", row.names = F)
+            file.path(outdir, "AUC_complete2.txt"), sep = "\t", row.names = F)
 write.table(data.frame(bioclim = bioclim.t, gower = gower.t, maha = maha.t,maxent = maxent.t),
-            here::here("data", "outputs", "tests_present", "Thresh_comparison_pres_fut.txt"), sep = "\t", row.names = F)
+            file.path(outdir, "Thresh_complete2.txt"), sep = "\t", row.names = F)
 ```
 
 # Part 2
 
 ```{r}
 # reading the table with AUC values for each model
-auc <- read.table(here::here("data", "outputs", "tests_present", "AUC_comparison_pres_fut.txt"), h = T)
+auc <- read.table(file.path(outdir, "AUC_complete2.txt"), h = T)
 
 # Gensemble
 gensemble <- vector(mode = "list", length = 1)
@@ -508,7 +542,7 @@ valm2 <- quantile(valm[,2],.05, na.rm = T) ##aqui se usa um quantil pra binariza
 #ou diminuir se quiser
 
 # Making the map binary
-gensemble[[1]] <- ensemble>= valm2
+gensemble[[1]] <- ensemble >= valm2
 ```
 
 
@@ -518,20 +552,20 @@ gensemble[[1]] <- ensemble>= valm2
 ```{r}
 # Tif 1
 writeRaster(x = gensemble[[1]], 
-            filename = file.path(here::here("data", "outputs", "present","ensemble_stud_binary_present_comparison.tif"), sep=""),
+            filename = file.path(outdir, "ensemble_stud_binary_present_comparison2.tif"), sep="",
             format = 'GTiff', overwrite=T)
 plot(ensemble)
 writeRaster(x = ensemble, 
-            filename = file.path(here::here("data", "outputs", "present", "ensemble_stud_prob_present_comparison.tif"), sep=""), 
+            filename = file.path(outdir, "ensemble_stud_prob_present_comparison2.tif"), sep="",
             format = 'GTiff', overwrite=T)
 
-tiff(file="ensembled_binary_pres_comparison.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensembled_binary_pres_comparison2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(gensemble[[1]])
 points(ocor, pch=20) 
 map(add=T)
 dev.off()
 
-tiff(file="ensembled_prob_pres_comparison.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensembled_prob_pres_comparison2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(ensemble)
 points(ocor, pch=20) #inserir pontos de ocorr?ncia no mapa
 map(add=T)
@@ -539,7 +573,7 @@ dev.off()
 
 e <- extent(-80,-30,-10,20) 
 fig.menor <- crop(ensemble, e)
-tiff(file="ensemble_prob_smaller_pres_comparison.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
+tiff(file="ensemble_prob_smaller_pres_comparison2.tiff", width = 3200, height = 3200, res = 400, compression = "lzw")
 plot(fig.menor)
 points(ocor, pch=20) #inserir pontos de ocorr?ncia no mapa
 map(add=T)
