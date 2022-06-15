@@ -594,7 +594,7 @@ bin_pres <-
 iucn_stud + bin_pres +
   plot_layout(widths = c(1,1))
 
-ggsave(file.path(outdir, "composite_of_present_models_with_all_vars3.png"),
+ggsave(file.path(outdir, "composite_of_present_models_with_all_vars_new_model.png"),
        width = 11, height = 9, dpi = 300)
 
 #ggsave(here::here("data", "outputs", "composite_of_present_models_with_all_vars.tiff"), width = 10, height = 10, compression = "lzw", dpi = 300)
@@ -635,11 +635,12 @@ prob_pres_zoom_north <-
 ```
 
 ```{r}
-#prob_pres_zoom_center <- 
+prob_pres_zoom_center <- 
   ggplot() +
   geom_sf(data = world) +
   geom_raster(data = stud_prob_pres_df, 
-            aes(x = x, y = y, fill = ensemble)) +
+            aes(x = x, y = y, fill = ensemble),
+            show.legend = F) +
   geom_point(data = ocor, 
              aes(x = long, y = lat),
              pch = 21,
@@ -667,7 +668,7 @@ prob_pres_zoom_north <-
 ```
 
 ```{r}
-#prob_pres_zoom_south <-
+prob_pres_zoom_south <-
   ggplot() +
   geom_sf(data = world) +
   geom_raster(data = stud_prob_pres_df, 
@@ -699,10 +700,11 @@ prob_pres_zoom_north <-
 ```
 
 ```{r, fig.width=10, fig.height=10}
-#prob_pres <- 
+prob_pres <- 
   ggplot() +
   geom_raster(data = stud_prob_pres_df, 
-            aes(x = x, y = y, fill = ensemble)) +
+            aes(x = x, y = y, fill = ensemble),
+            show.legend = F) +
   geom_sf(data = world) +
   # geom_sf(data = bathy_200, fill = NA,
   #         color = "black") +
@@ -750,6 +752,9 @@ prob_pres_zoom_north <-
         legend.title = element_text(color = "white")) +
   guides(fill = guide_colourbar(ticks = F,
                                 barwidth = 0.8))
+
+# ggsave(file.path(outdir, "probability_map_with_all_vars_new_model.png"),
+#        width = 11, height = 9, dpi = 300)
 ```
 
 
@@ -760,7 +765,7 @@ prob_pres_zoom_north <-
               heights = c(5,1),
               guides = "collect") 
 
-ggsave(file.path(outdir, "zoom_composite_of_present_models_with_all_vars3.png"),
+ggsave(file.path(outdir, "composite_of_probability_with_all_vars_new_model.png"),
        width = 11, height = 9, dpi = 300)
 ```
 
