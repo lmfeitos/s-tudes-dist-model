@@ -38,11 +38,11 @@ df_orig <- raster::raster(file.path(presdir, "Present.Benthic.Mean.Depth.Dissolv
 
 ```{r}
 ## Read in the data from the test models for variable importance
-vars <- list.files(file.path(outdir, "tests_present"),
+vars <- list.files(file.path(outdir, "auc"),
                    pattern = ".csv",
                    full.names = TRUE)
 
-tbl <- sapply(vars, read.csv, simplify = FALSE, sep = ";")
+tbl <- sapply(vars, read.delim, simplify = FALSE, sep = ",")
 
 vars_tbl <- tbl %>%
   bind_rows() 
@@ -78,7 +78,7 @@ final_summary <- model_final %>%
 summary_df <- full_join(vars_summary, final_summary, by = c("variable", "algorithm", "mean_auc", "sd_auc")) 
 
 
-summary_df_wide <- summary_df %>% 
+summary_df_wide <- vars_summary %>% 
   pivot_wider(names_from = starts_with(c("algorithm")),
               values_from = ends_with(c("auc"))) %>% 
   relocate(sd_auc_bioclim, .after = mean_auc_bioclim) %>% 
@@ -90,36 +90,52 @@ summary_df_wide <- summary_df %>%
 ```
 
 ```{r, fig.width=7, fig.height=4.5}
-summary_df %>% 
+var_bold <- ifelse(levels(vars_summary$variable) == "Result", "bold", "plain")
+
+vars_summary %>% 
     mutate(variable = case_when(
-    variable == "mean_surf_temp" ~ "Surface Temperature (mean)",
-    variable == "mean_surf_sal" ~ "Surface Salinity (mean)",
-    variable == "mean_surf_DO" ~ "Surface Dissolved Oxygen (mean)",
-    variable == "mean_surf_curr" ~ "Surface Current (mean)",
-    variable == "mean_surf_chla" ~ "Surface Chlorophyll A (mean)",
-    variable == "mean_light_bot" ~ "Light at bottom (mean)",
-    variable == "mean_cloud" ~ "Cloud cover (mean)",
-    variable == "full_model" ~ "Full model",
-    variable == "benthic_mean_DO" ~ "Benthic Dissolved Oxygen (mean)",
-    variable == "bent_mean_sal" ~ "Benthic Salinity (mean)",
+    variable == "surf_temperature" ~ "Surface Temperature (range)",
+    variable == "surf_salinity" ~ "Surface Salinity (mean)",
+    variable == "surf_do" ~ "Surface Dissolved Oxygen (range)",
+    variable == "surf_productivity" ~ "Surface Primary Productivity (mean)",
+    variable == "surf_ph" ~ "Surface pH (mean)",
+    variable == "bent_light" ~ "Benthic light at bottom (range)",
+    variable == "bent_productivity" ~ "Benthic Primary Productivity (mean)",
+    variable == "full_model" ~ "Result",
+    variable == "bent_do" ~ "Benthic Dissolved Oxygen (mean)",
+    variable == "bent_salinity" ~ "Benthic Salinity (mean)",
+    variable == "bent_curr_velocity" ~ "Benthic Current Velocity (mean)"
   )) %>% 
   mutate(algorithm = str_to_sentence(algorithm)) %>% 
   mutate(algorithm = case_when(
     algorithm == "Maha" ~ "Mahalanobis",
+    algorithm == "Gower" ~ "DOMAIN",
     TRUE ~ algorithm
   )) %>% 
 ggplot() +
-  geom_point(aes(x = variable, y = mean_auc, color = algorithm),
+  geom_point(aes(x = fct_rev(fct_relevel(variable,
+                             labels = c("Result",
+                                "Benthic Current Velocity (mean)",
+                                "Benthic Dissolved Oxygen (mean)",
+                                "Benthic light at bottom (range)",
+                                "Benthic Primary Productivity (mean)",
+                                "Benthic Salinity (mean)",
+                                "Surface Dissolved Oxygen (range)",
+                                "Surface pH (mean)",
+                                "Surface Primary Productivity (mean)",
+                                "Surface Salinity (mean)",
+                                "Surface Temperature (range)"))), y = mean_auc, color = algorithm),
              show.legend = F,
              size = 2) +
   geom_linerange(aes(x = variable, ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc, color = algorithm),
                 size = 0.6,
                 show.legend = F) +
+  geom_hline(yintercept = 0.7, color = "black", linetype = "dashed") +
   facet_wrap(~ algorithm, nrow = 1) +
   labs(x = "",
        y = "Mean AUC") +
   scale_color_manual(values = met.brewer("Java", 4)) +
-  scale_y_continuous(breaks = seq(0.6, 1, by = 0.2)) +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
   coord_flip() +
   theme_bw() +
   theme(axis.title = element_text(size = 12, color = "black"),
@@ -245,21 +261,21 @@ stud_dist_IUCN %>% st_crs() # WGS 84, CRS = 4326
 
 ```{r}
 # Create df from rasters
-stud_bin_fut_df <- raster::rasterToPoints(stud_bin_future) %>% 
-  as.data.frame() %>% 
-  rename(ensemble = ensemble_stud_binary_future)
-
-stud_prob_fut_df <- raster::rasterToPoints(stud_prob_future) %>% 
-  as.data.frame() %>% 
-  rename(ensemble = ensemble_stud_prob_future)
-
-stud_bin_pres_comp_df <- raster::rasterToPoints(stud_bin_pres_comp) %>% 
-  as.data.frame() %>% 
-  rename(ensemble = ensemble_stud_binary_present_comparison)
-
-stud_prob_pres_comp_df <- raster::rasterToPoints(stud_prob_pres_comp) %>% 
-  as.data.frame() %>%  
-  rename(ensemble = ensemble_stud_prob_present_comparison)
+# stud_bin_fut_df <- raster::rasterToPoints(stud_bin_future) %>% 
+#   as.data.frame() %>% 
+#   rename(ensemble = ensemble_stud_binary_future)
+# 
+# stud_prob_fut_df <- raster::rasterToPoints(stud_prob_future) %>% 
+#   as.data.frame() %>% 
+#   rename(ensemble = ensemble_stud_prob_future)
+# 
+# stud_bin_pres_comp_df <- raster::rasterToPoints(stud_bin_pres_comp) %>% 
+#   as.data.frame() %>% 
+#   rename(ensemble = ensemble_stud_binary_present_comparison)
+# 
+# stud_prob_pres_comp_df <- raster::rasterToPoints(stud_prob_pres_comp) %>% 
+#   as.data.frame() %>%  
+#   rename(ensemble = ensemble_stud_prob_present_comparison)
 
 stud_bin_pres_df <- raster::rasterToPoints(stud_bin_pres) %>% 
   as.data.frame()  %>% 
@@ -328,7 +344,7 @@ ggplot(data = bathy_200 %>% ) +
 ```
 
 
-## Trying to plot rasters in ggplot - Work further on this!
+## Trying to plot rasters in ggplot
 future_comp_bin <- 
 ```{r, fig.height=9, fig.width=9}
 # future_comp_bin <- ggplot() +
@@ -603,35 +619,35 @@ ggsave(file.path(outdir, "composite_of_present_models_with_all_vars_new_model.pn
 
 
 ```{r}
-prob_pres_zoom_north <- 
-  ggplot() +
-  geom_sf(data = world) +
-  geom_raster(data = stud_prob_pres_df, 
-            aes(x = x, y = y, fill = ensemble)) +
-  geom_point(data = ocor, 
-             aes(x = long, y = lat),
-             pch = 21,
-             fill = "maroon2",
-             color = "black",
-             alpha = 0.5,
-             size = 2) +
-  scale_fill_viridis_c(breaks = seq(0, 18, by = 17),
-                       labels = c("Low", "High")) +
-  coord_sf(xlim = c(-100, -70),
-           ylim = c(15, 40),
-           expand = FALSE) +
-  labs(x = "",
-       y = "",
-       fill = "Suitability") +
-  theme_bw() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = c(.15, .8),
-        legend.background = element_rect(fill = "transparent"),
-        legend.text = element_text(color = "black"),
-        legend.title = element_text(color = "black")) +
-  guides(fill = guide_colorbar(ticks = F,
-                               barwidth = 0.8))
+# prob_pres_zoom_north <- 
+#   ggplot() +
+#   geom_sf(data = world) +
+#   geom_raster(data = stud_prob_pres_df, 
+#             aes(x = x, y = y, fill = ensemble)) +
+#   geom_point(data = ocor, 
+#              aes(x = long, y = lat),
+#              pch = 21,
+#              fill = "maroon2",
+#              color = "black",
+#              alpha = 0.5,
+#              size = 2) +
+#   scale_fill_viridis_c(breaks = seq(0, 18, by = 17),
+#                        labels = c("Low", "High")) +
+#   coord_sf(xlim = c(-100, -70),
+#            ylim = c(15, 40),
+#            expand = FALSE) +
+#   labs(x = "",
+#        y = "",
+#        fill = "Suitability") +
+#   theme_bw() +
+#   theme(axis.text = element_blank(),
+#         axis.ticks = element_blank(),
+#         legend.position = c(.15, .8),
+#         legend.background = element_rect(fill = "transparent"),
+#         legend.text = element_text(color = "black"),
+#         legend.title = element_text(color = "black")) +
+#   guides(fill = guide_colorbar(ticks = F,
+#                                barwidth = 0.8))
 ```
 
 ```{r}
@@ -648,6 +664,9 @@ prob_pres_zoom_center <-
              color = "black",
              alpha = 0.5,
              size = 2) +
+  geom_text() +
+  annotate("text", label = "B",
+           x = -32, y = 18, size = 5, color = "white") +
   scale_fill_viridis_c(breaks = seq(0, 18, by = 17),
                        labels = c("0%", "100%")) +
   coord_sf(xlim = c(-80, -30),
@@ -672,7 +691,8 @@ prob_pres_zoom_south <-
   ggplot() +
   geom_sf(data = world) +
   geom_raster(data = stud_prob_pres_df, 
-            aes(x = x, y = y, fill = ensemble)) +
+            aes(x = x, y = y, fill = ensemble),
+            show.legend = F) +
   geom_point(data = ocor, 
              aes(x = long, y = lat),
              pch = 21,
@@ -680,6 +700,9 @@ prob_pres_zoom_south <-
              color = "black",
              alpha = 0.5,
              size = 2.5) +
+  geom_text() +
+  annotate("text", label = "C",
+           x = -69, y = -3, size = 5, color = "black") +
   scale_fill_viridis_c(breaks = seq(0, 18, by = 16),
                        labels = c("0%", "100%")) +
   coord_sf(xlim = c(-70, -30),
@@ -703,8 +726,7 @@ prob_pres_zoom_south <-
 prob_pres <- 
   ggplot() +
   geom_raster(data = stud_prob_pres_df, 
-            aes(x = x, y = y, fill = ensemble),
-            show.legend = F) +
+            aes(x = x, y = y, fill = ensemble)) +
   geom_sf(data = world) +
   # geom_sf(data = bathy_200, fill = NA,
   #         color = "black") +
@@ -715,31 +737,34 @@ prob_pres <-
              color = "black",
              alpha = 0.5,
              size = 1.5) +
+  geom_text() +
+  annotate("text", label = "A",
+           x = -104, y = 46, size = 5, color = "black") +
   scale_fill_viridis_c(breaks = seq(0, 18, by = 16),
                        labels = c("0%", "100%")) +
   coord_sf(xlim = c(-108, -25),
            ylim = c(-60, 50),
            expand = FALSE) +
-#   geom_polygon(data = data.frame("x" = c(-78, -78,
-#                                          -33, -33), 
-#                                  "y" = c(-6, 17, 
-#                                          17, -6)),
-#                mapping = aes(x = x, y = y), 
-#                fill = NA,
-#                color = "black",
-#                size = .7) +
-#   geom_polygon(data = data.frame("x" = c(-57, -57,
-#                                          -35, -35), 
-#                                  "y" = c(-40, -10, 
-#                                          -10, -40)),
-#                mapping = aes(x = x, y = y), 
-#                fill = NA,
-#                color = "black",
-#                size = .7) +
-# #  geom_rect(xmin = -80, xmax = -30, ymin = -10, ymax = 20,
-#            fill = NA, color = "black", size = 1) +
-#  geom_rect(xmin = -70, xmax = -30, ymin = -40, ymax = -5,
-#            fill = NA, color = "black", size = 1) +
+   geom_polygon(data = data.frame("x" = c(-78, -78,
+                                          -33, -33), 
+                                  "y" = c(-6, 17, 
+                                          17, -6)),
+                mapping = aes(x = x, y = y), 
+                fill = NA,
+                color = "black",
+                size = .7) +
+   geom_polygon(data = data.frame("x" = c(-57, -57,
+                                          -35, -35), 
+                                  "y" = c(-40, -10, 
+                                          -10, -40)),
+                mapping = aes(x = x, y = y), 
+                fill = NA,
+                color = "black",
+                size = .7) +
+   geom_rect(xmin = -80, xmax = -30, ymin = -10, ymax = 20,
+            fill = NA, color = "black", size = 1) +
+  geom_rect(xmin = -70, xmax = -30, ymin = -40, ymax = -5,
+            fill = NA, color = "black", size = 1) +
   labs(x = "",
        y = "",
        fill = "Suitability") +
@@ -757,13 +782,40 @@ prob_pres <-
 #        width = 11, height = 9, dpi = 300)
 ```
 
+```{r, fig.height=9, fig.width=11}
+arrow_a <- data.frame(x1 = 13, x2 = 15.6, y1 = 11, y2 = 12.5)
+arrow_b <- data.frame(x1 = 12.68, x2 = 18, y1 = 8.5, y2 = 7.5)
+
+ggplot() +
+  coord_equal(xlim = c(0,30), ylim = c(0,20), expand = FALSE) +
+  annotation_custom(ggplotGrob(prob_pres),
+                    xmin = 0, xmax = 14.5, ymin = 0, ymax = 20) +
+  annotation_custom(ggplotGrob(prob_pres_zoom_center),
+                    xmin = 15, xmax = 30, ymin = 10, ymax = 19.5) +
+  annotation_custom(ggplotGrob(prob_pres_zoom_south),
+                    xmin = 15, xmax = 30, ymin = 0, ymax = 9.5) +
+  geom_segment(data = arrow_a, aes(x = x1, y = y1, xend = x2, yend = y2),
+               arrow = arrow(), lineend = "round", size = .6) +
+  geom_segment(data = arrow_b, aes(x = x1, y = y1, xend = x2, yend = y2),
+               arrow = arrow(), lineend = "round", size = .6) +
+  theme_void()
+
+ggsave(file.path(outdir, "composite_of_probability_with_all_vars_new_model_2.png"),
+       width = 11, height = 9, dpi = 300)
+```
+
+
 
 ```{r, fig.height=9, fig.width=11}
 (prob_pres + plot_layout(guides = "auto") | (prob_pres_zoom_center / prob_pres_zoom_south)) +
   plot_annotation(tag_levels = "A") +
   plot_layout(widths = c(2, 2),
               heights = c(5,1),
-              guides = "collect") 
+              guides = "collect") +
+    geom_segment(data = arrow_a, aes(x = x1, y = y1, xend = x2, yend = y2),
+               arrow = arrow(), lineend = "round") +
+  geom_segment(data = arrow_b, aes(x = x1, y = y1, xend = x2, yend = y2),
+               arrow = arrow(), lineend = "round") 
 
 ggsave(file.path(outdir, "composite_of_probability_with_all_vars_new_model.png"),
        width = 11, height = 9, dpi = 300)

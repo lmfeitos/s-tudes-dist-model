@@ -21,8 +21,6 @@ library(rJava)
 library(maptools)
 library(sdmpredictors)
 library(usdm)
-library(googlesheets4)
-library(tabulizer)
 ```
 
 
@@ -35,13 +33,6 @@ occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
 vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
 shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
 pdfdir <- file.path(basedir, "papers") # calls the .pdf files to extract tables from
-```
-
-## Read in the data
-
-```{r pdf file test}
-suri_pdf <- extract_tables(here::here("data", "project_global_country_profile_suriname_draft.pdf"), pages = 16)
-
 ```
 
 
@@ -262,10 +253,12 @@ ocor <- na.omit(ocor)
 
 ```{r}
 # checar correlacao das variaveis
-variables <- ocor[,3:12]
+variables <- ocor[,3:11]
 
 correlation <- (cor(variables)> 0.7)*1
+```
 
+```{r}
 # calling package "usdm" to calculate collinearity between environmental variables
 library(usdm)
 
@@ -288,6 +281,7 @@ variables3
 #correlation_df <- as.data.frame(correlation)
 
 #write_csv(correlation_df, file.path(presdir, "env_layers_correlation.csv"), col_names = T)
+
 ```
 
 - Variables with high correlation based on the cor() function: Benthic current velocity mean and range, benthic light at bottom mean and range, benthic primary productivity mean and range, benthic temperature mean and surface temperature mean, benthic temperature range and surface temperature range, cloud cover and surface salinity range, surface dissolved oxygen range and surface salinity range, and surface primary productivity mean and range.
@@ -453,9 +447,9 @@ writeRaster(maxent0k, "maxent0k.bil", format = "EHdr", overwrite = T)
 
 # Write AUC table for all models
 write.table(data.frame(bioclim = bioclim.e, gower = gower.e, maha = maha.e,maxent = maxent.e),
-            file.path(outdir, "AUC_complete2.txt"), sep = "\t", row.names = F)
+            file.path(outdir, "auc", "AUC_complete2_surf_temp.txt"), sep = "\t", row.names = F)
 write.table(data.frame(bioclim = bioclim.t, gower = gower.t, maha = maha.t,maxent = maxent.t),
-            file.path(outdir, "Thresh_complete2.txt"), sep = "\t", row.names = F)
+            file.path(outdir, "threshold", "Thresh_complete2_surf_temp.txt"), sep = "\t", row.names = F)
 ```
 
 # Part 2
