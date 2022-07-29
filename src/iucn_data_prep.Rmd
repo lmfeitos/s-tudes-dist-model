@@ -1,0 +1,24 @@
+---
+title: "iucn_data_extraction_and_prep"
+author: "Leonardo Feitosa"
+date: "29/07/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(janitor)
+library(rredlist)
+```
+
+```{r}
+# Personal redlist API token - required to to use the package
+# User will need to sign up for their own API token 
+api_key = ''
+
+# read in shark data
+elas_spp_list <- rl_countries(name = 'sharks and rays', key = api_key)
+```
+
