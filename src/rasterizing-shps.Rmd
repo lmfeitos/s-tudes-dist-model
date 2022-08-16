@@ -1,0 +1,80 @@
+---
+title: "rasterizing-shps"
+author: "Leonardo Feitosa"
+date: "16/08/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(raster)
+library(janitor)
+library(rgdal)
+library(sf)
+```
+
+```{r}
+basedir <- "G:/Meu Drive/S. tudes/data/"
+shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
+vardir <- file.path(basedir, "variables")
+```
+
+```{r}
+# call eez shapefile
+eez <- st_read(file.path(shapedir, "eezs", "eez_v11.shp")) %>% 
+  clean_names()
+
+vars <- read_csv(file.path(vardir, "tudes_variables_final.csv")) %>% 
+  rename(territory1 = country)
+
+eez_filter <- eez %>% 
+  filter(mrgid %in% c(8462,     #French Guiana
+                      8464,     #Brazil
+                      8426,     #Colombia
+                      8433,     #Venezuela
+                      8460,     #Guiana
+                      8461,     #Suriname
+                      8420))     #Trinidad and Tobago
+
+eez_merge <- eez_filter %>% 
+  dplyr::select(geoname, territory1, sovereign1) %>%  
+  left_join(vars, by = "territory1")
+```
+
+```{r}
+eez_geo <- eez %>% 
+  st_drop_geometry()
+
+eez_filter_geo <- eez_filter %>% 
+  st_drop_geometry()
+
+eez_merge_geo <- eez_merge %>% 
+  st_drop_geometry()
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = eez_filter, fill = NA)
+```
+
+```{r}
+ext <- extent(-85, -25, -35, 25)
+xy <- abs(apply(as.matrix(bbox(ext)), 1, diff))
+n <- 5
+r <- raster(ext, ncol = xy[1] * n, nrow = xy[2]*n)
+
+
+eez_raster <- rasterize(eez_merge, r)
+```
+
+```{r}
+plot(eez_raster)
+```
+
+```{r}
+# write merged shapefile as RDS and the rasterized version of it
+saveRDS(eez_merge, file = file.path(shapedir, "eez_merged_vars.Rds"))
+writeRaster(eez_raster, file = file.path(rasterdir, "eez_merge_raster.tiff"))
+```
+
