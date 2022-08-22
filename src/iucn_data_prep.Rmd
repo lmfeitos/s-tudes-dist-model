@@ -11,14 +11,94 @@ library(tidyverse)
 library(here)
 library(janitor)
 library(rredlist)
+library(readxl)
 ```
+
+```{r}
+basedir <- "G:/Meu Drive/S. tudes/data/"
+vardir <- file.path(basedir, "variables")
+```
+
+```{r}
+sp_sa <- read_csv(file.path(vardir, "sp_by_country.csv")) %>% 
+  clean_names() %>% 
+  filter(brazil == 1) %>% 
+  mutate(brazil = as.numeric(brazil))
+
+elasmo <- read_xlsx(path = file.path(vardir, "elasmo_occurence_sa.xlsx"), sheet = "Original_data") %>% 
+  clean_names() %>% 
+  rename(species = nome) %>% 
+  select(species, suriname, guiana, g_francesa, venezuela, colombia, trinidad) %>% 
+  left_join(sp_sa, by = "species") %>% 
+  arrange(species) %>% 
+  pivot_longer(cols = suriname:brazil,
+               names_to = "country",
+               values_to = "occurrence") %>% 
+  mutate(occurrence = ifelse(is.na(occurrence), "0", occurrence)) %>% 
+  mutate(country = str_replace(country, "_", " ")) %>% 
+  mutate(country = str_to_sentence(country)) %>% 
+  mutate(country = case_when(
+    country == "Guiana" ~ "Guyana",
+    country == "G francesa" ~ "French Guiana",
+    TRUE ~ country
+  ))
+
+sp_all <- left_join(elasmo, iucn_spp_api_gr, by = "species") %>% 
+  drop_na(api_category) %>% 
+  mutate(occurrence = case_when(
+    occurrence == 1 ~ "present",
+    occurrence == 0 ~ "absent"
+  ))
+
+write_csv(sp_all, file = file.path(vardir, "sp_list_per_country.csv"), col_names = TRUE)
+```
+
+```{r}
+sp_status_count <- sp_all %>% 
+  filter(occurrence == "present") %>% 
+  mutate(api_category = case_when(
+    api_category %in% c("CR", "VU", "EN") ~ "endangered",
+    api_category == "DD" ~ "data_deficient",
+    TRUE ~ "not_endangered"
+  )) %>% 
+  group_by(country, api_category) %>% 
+  count() %>% 
+  ungroup() %>% 
+  group_by(country) %>% 
+  mutate(sum = sum(n)) %>% 
+  pivot_wider(names_from = api_category,
+              values_from = n) %>% 
+  mutate(prop_end = endangered/sum,
+         prop_dd = data_deficient/sum,
+         prop_not_end = not_endangered/sum) %>%   
+  pivot_longer(cols = data_deficient:not_endangered,
+               names_to = "status",
+               values_to = "status_sum") %>% 
+  pivot_longer(cols = prop_end:prop_not_end,
+               names_to = "prop_status",
+               values_to = "proportion") 
+
+write_csv(sp_status_count, file = file.path(vardir, "status_proportions_country.csv"), col_names = TRUE)
+
+check <- sp_status_count %>% 
+  group_by(country, status) %>% 
+  summarise(total_prop = sum(proportion, na.rm = T))
+```
+
 
 ```{r}
 # Personal redlist API token - required to to use the package
 # User will need to sign up for their own API token 
-api_key = ''
+api_key = '44abe00700cbbd7ba9e8a7c57fbf84f102186a43ca7bb3e7a5b0b33a83d98416'
 
 # read in shark data
-elas_spp_list <- rl_countries(name = 'sharks and rays', key = api_key)
+elas_spp_list_gr <- rl_comp_groups(group = 'sharks_and_rays', key = api_key)
+
+elas_spp_list_ct <- rl_countries(group = 'sharks_and_rays', key = api_key)
+
+iucn_spp_api_gr <- elas_spp_list_gr$result %>% 
+  dplyr::select(api_id = taxonid, species = scientific_name, api_category = category)
+
+iucn_spp_api_ct <- elas_spp_list_ct$result 
 ```
 
