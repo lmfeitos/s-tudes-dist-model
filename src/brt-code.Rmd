@@ -117,11 +117,6 @@ totalPred <- data.frame()
 PDPResults <- list()
 ```
 
-
-```{r}
-
-```
-
 ```{r}
 # run the BRTs
 bootend <- 2
