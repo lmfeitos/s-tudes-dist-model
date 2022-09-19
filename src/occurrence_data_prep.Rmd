@@ -1,0 +1,91 @@
+---
+title: "occurrence_data_prep"
+author: "Leonardo Feitosa"
+date: "19/09/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(plyr)
+library(janitor)
+library(rnaturalearth)
+```
+
+```{r}
+# set working directories
+basedir <- "G:/Meu Drive/S. tudes/data/"
+presdir <- file.path(basedir, "raster_layers_updated") # calls present data from raster files
+outdir <- file.path(basedir, "outputs") # sends plots to the output folder
+occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
+vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
+shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
+pdfdir <- file.path(basedir, "papers") # calls the .pdf files to extract tables from
+```
+
+
+```{r}
+# Load occurrence data
+#GBIF
+stud_data_gbif <- read_csv(file.path(occurdir, "s_tudes_occurrences_raw_gbif.csv")) %>% 
+  clean_names() %>% 
+  dplyr::rename(long = decimal_longitude,
+                lat = decimal_latitude) %>% 
+  mutate(source = "GBIF") 
+
+
+#OBIS
+stud_data_obis <- read_csv(file.path(occurdir, "obis_raw.csv"))  %>% 
+  clean_names() %>% 
+  select(-year) %>% 
+  dplyr::rename(long = decimallongitude,
+                lat = decimallatitude,
+                year = date_year) %>% 
+  mutate(source = "OBIS")
+
+#Fish net
+stud_data_fishnet <- read_csv(file.path(occurdir, "fish_net_2_raw.csv"))  %>% 
+  clean_names() %>% 
+  dplyr::rename(long = longitude,
+                lat = latitude,
+                year = year_collected) %>% 
+  mutate(source = "FISHNET")
+```
+
+```{r}
+# Create new dataset with only lat and long
+gbif_subset <- stud_data_gbif %>% 
+ dplyr::select(source, long, lat, year) %>% 
+ mutate_at(c(2,3), as.numeric)
+
+obis_subset <- stud_data_obis %>% 
+ dplyr::select(source, long, lat, year)
+
+fish_subset <- stud_data_fishnet %>% 
+ dplyr::select(source, long, lat, year) %>% 
+ mutate_at(c(2,3), as.numeric)
+
+geo_data_whole <- join_all(list(gbif_subset, obis_subset, fish_subset), type = "full") %>%  
+  filter(-99 < long & long < -17) %>% 
+  filter(lat < 12) 
+
+#write_csv(geo_data_whole, file = file.path(occurdir, "occurrence_data_years.csv"), col_names = TRUE)
+```
+
+```{r}
+# load map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+```
+
+```{r}
+geo_data_whole_filter <- geo_data_whole %>% 
+  filter(-99 < long & long < -17) %>% 
+  filter(lat < 10)
+
+
+ggplot() +
+  geom_sf(data = world) +
+  geom_point(data = geo_data_whole, aes(x = long, y = lat))
+```
+

@@ -48,13 +48,9 @@ sp_all <- left_join(elasmo, iucn_spp_api_gr, by = "species") %>%
   mutate(occurrence = case_when(
     occurrence == 1 ~ "present",
     occurrence == 0 ~ "absent"
-  ))
+  )) 
 
-write_csv(sp_all, file = file.path(vardir, "sp_list_per_country.csv"), col_names = TRUE)
-```
-
-```{r}
-sp_status_count <- sp_all %>% 
+sp_cat_count <- sp_all %>% 
   filter(occurrence == "present") %>% 
   mutate(api_category = case_when(
     api_category %in% c("CR", "VU", "EN") ~ "endangered",
@@ -63,26 +59,50 @@ sp_status_count <- sp_all %>%
   )) %>% 
   group_by(country, api_category) %>% 
   count() %>% 
-  ungroup() %>% 
+  ungroup() 
+
+sp_count <- sp_all %>% 
+  filter(occurrence == "present") %>% 
   group_by(country) %>% 
-  mutate(sum = sum(n)) %>% 
+  count()
+
+sp_count_all <- left_join(sp_count, sp_cat_count, by = "country") %>% 
+  rename(country_n = n.x,
+         category_n = n.y)
+
+write_csv(sp_all, file = file.path(vardir, "sp_list_per_country.csv"), col_names = TRUE)
+```
+
+```{r}
+status_proportions_country <- sp_count_all %>% 
   pivot_wider(names_from = api_category,
-              values_from = n) %>% 
-  mutate(prop_end = endangered/sum,
-         prop_dd = data_deficient/sum,
-         prop_not_end = not_endangered/sum) %>%   
-  pivot_longer(cols = data_deficient:not_endangered,
-               names_to = "status",
-               values_to = "status_sum") %>% 
+              values_from = category_n) %>%   
+  mutate(prop_end = endangered/country_n,
+         prop_dd = data_deficient/country_n,
+         prop_not_end = not_endangered/country_n) %>%    
   pivot_longer(cols = prop_end:prop_not_end,
                names_to = "prop_status",
-               values_to = "proportion") 
+               values_to = "proportion") %>% 
+  drop_na(proportion)
 
 write_csv(sp_status_count, file = file.path(vardir, "status_proportions_country.csv"), col_names = TRUE)
 
 check <- sp_status_count %>% 
-  group_by(country, status) %>% 
+  group_by(country) %>% 
   summarise(total_prop = sum(proportion, na.rm = T))
+```
+
+```{r}
+status_proportions_country_prep <- status_proportions_country %>% 
+  select(country, prop_status, proportion)
+
+
+tudes_var <- read_csv(file.path(vardir, "tudes_variables_final.csv"))
+
+tudes_var_final <- left_join(tudes_var, status_proportions_country_prep, by = "country") %>% 
+  select(-shark_species_condition_trend, -size_of_coastal_pop)
+
+write_csv(tudes_var_final, file = file.path(vardir, "tudes_variables_final.csv"))
 ```
 
 

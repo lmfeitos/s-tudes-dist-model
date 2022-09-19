@@ -18,6 +18,15 @@ library(foreach)
 library(brms)
 ```
 
+```{r}
+# Set working directories
+basedir <- "G:/Meu Drive/S. tudes/data/"
+occurdir <- file.path(basedir, "occurrences")
+outdir <- file.path(basedir, "outputs", "brt")
+vardir <- file.path(basedir, "variables")
+```
+
+
 # Part 1: Regression tree analysis ----------------------------------------------------
 # This section involves running 1000 bootstrapped BRTs in parallel to calculate the 
 # relative importance of each variable, calculate the partial dependence of each variable,
@@ -25,13 +34,16 @@ library(brms)
 
 # read-in data
 ```{r}
-OccData <- 
-  read_csv('Data/OccurrenceData.csv')
+occ_data <- read_csv(file.path(vardir, 'tudes_variables_final.csv'))
 
-BRTpred <- 
-  read_csv('Data/PresenceUncertain.csv') %>% 
-  # convert to a dataframe
-  as.data.frame()
+occ_data_prep <- occ_data %>% 
+  dplyr::select(-occurrence_source, -lat, -long, -fish_totalprotein, -prop_status, -proportion) %>% 
+  distinct_all()
+
+# BRTpred <- 
+#   read_csv('Data/PresenceUncertain.csv') %>% 
+#   # convert to a dataframe
+#   as.data.frame()
 ```
 
 
@@ -43,18 +55,18 @@ set.seed(123)
 
 # start by randomizing the data
 ```{r}
-randomIndex <- sample(1:nrow(OccData), nrow(OccData))
-OccData <- OccData[randomIndex, ]
+randomIndex <- sample(1:nrow(occ_data), nrow(occ_data))
+occ_data <- occ_data[randomIndex, ]
 ```
 
 # separate the data into a training set (80%) and a test set (20%)
 ```{r}
-n <- nrow(OccData)
+n <- nrow(occ_data)
 nTrain <- round(0.8 * n)
 trainIndex <- sample(1:n, nTrain)
 
-BRTtrain <- OccData[trainIndex, ]
-BRTtest <- OccData[-trainIndex, ]
+BRTtrain <- occ_data[trainIndex, ]
+BRTtest <- occ_data[-trainIndex, ]
 ```
 
 ```{r}
@@ -62,13 +74,13 @@ BRTtest <- OccData[-trainIndex, ]
 BRTtrain <- 
   BRTtrain %>% 
   # remove ISO3 column
-  dplyr::select(-ISO3) %>% 
+  dplyr::select(-country) %>% 
   as.data.frame()
 
 BRTtest <- 
   BRTtest %>% 
   # remove ISO3 column
-  #dplyr::select(-ISO3) %>% 
+  dplyr::select(-country) %>% 
   as.data.frame()
 ```
 
@@ -84,7 +96,7 @@ registerDoSNOW(cl)
 
 ```{r}
 # let each cluster read from the environment
-clusterExport(cl, c('BRTpred', 'BRTtrain', 'BRTtest'),
+clusterExport(cl, c('BRTtrain', 'BRTtest'),
               envir = environment())
 
 clusterEvalQ(cl, c(library(tidyverse),

@@ -1,0 +1,147 @@
+---
+title: "raster-df-prep"
+author: "Leonardo Feitosa"
+date: "19/09/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(sf)
+library(raster)
+library(janitor)
+```
+
+```{r}
+# set directories
+basedir <- "G:/Meu Drive/S. tudes/data/"
+presdir <- file.path(basedir, "raster_layers_updated") # calls present data from raster files
+outdir <- file.path(basedir, "outputs") # sends plots to the output folder
+occurdir <- file.path(basedir, "occurrences") # calls the occurrence data
+vardir <- file.path(basedir, "variables") # calls socioeconomic and fisheries variables
+shapedir <- file.path(basedir, "shape_files") # calls the shapefiles
+pdfdir <- file.path(basedir, "papers") # calls the .pdf files to extract tables from
+```
+
+# Benthic Current Velocity mean
+```{r}
+bent_cur_vel <- raster(file.path(presdir, "used", "Present.Benthic.Mean.Depth.Current.Velocity.Mean.tif.BOv2_1.tif"))
+
+bent_cur_veldf <- as.data.frame(bent_cur_vel, xy = TRUE)
+
+write_csv(bent_cur_veldf, file = file.path(presdir, "used", "dfs", "benthic_mean_depth_current_velocity.csv"), col_names = TRUE)
+```
+
+# Benthic DO mean
+```{r}
+bent_mean_do <- raster(file.path(presdir, "used", "Present.Benthic.Mean.Depth.Dissolved.oxygen.Mean.tif"))
+
+bent_mean_do_df <- as.data.frame(bent_mean_do, xy = TRUE)
+
+write_csv(bent_mean_do_df, file = file.path(presdir, "used", "dfs", "benthic_mean_depth_do.csv"), col_names = TRUE)
+```
+
+# Light at bottom mean
+```{r}
+bent_mean_light <- raster(file.path(presdir, "used", "Present.Benthic.Mean.Depth.Light.bottom.Range.tif"))
+
+bent_mean_light_df <- as.data.frame(bent_mean_light, xy = TRUE)
+
+write_csv(bent_mean_light_df, file = file.path(presdir, "used", "dfs", "benthic_mean_depth_light_at_bottom_range.csv"), col_names = TRUE)
+```
+
+# Benthic Primary Productivity mean
+```{r}
+bent_mean_prim_prod <- raster(file.path(presdir, "used", "Present.Benthic.Mean.Depth.Primary.productivity.Mean.tif"))
+
+bent_mean_prim_prod_df <- as.data.frame(bent_mean_prim_prod, xy = TRUE)
+
+write_csv(bent_mean_prim_prod_df, file = file.path(presdir, "used", "dfs", "benthic_mean_depth_prim_productivity_mean.csv"), col_names = TRUE)
+```
+
+# Benthic Salinity mean
+```{r}
+bent_mean_sal <- raster(file.path(presdir, "used", "Present.Benthic.Mean.Depth.Salinity.Mean.tif"))
+
+bent_mean_sal_df <- as.data.frame(bent_mean_sal, xy = TRUE)
+
+write_csv(bent_mean_light_df, file = file.path(presdir, "used", "dfs", "benthic_mean_depth_salinity_mean.csv"), col_names = TRUE)
+```
+
+# Surface DO range
+```{r}
+surf_do_range <- raster(file.path(presdir, "used", "Present.Surface.Dissolved.oxygen.Range.tif"))
+
+surf_do_range_df <- as.data.frame(surf_do_range, xy = TRUE)
+
+write_csv(surf_do_range_df, file = file.path(presdir, "used", "dfs", "surface_do_range.csv"), col_names = TRUE)
+```
+
+# Surface pH
+```{r}
+surf_ph <- raster(file.path(presdir, "used", "Present.Surface.pH.BOv2_2.tif"))
+
+surf_ph_df <- as.data.frame(surf_ph, xy = TRUE)
+
+write_csv(surf_ph_df, file = file.path(presdir, "used", "dfs", "surface_ph.csv"), col_names = TRUE)
+```
+
+# Surface Primary Productivity mean
+```{r}
+surf_prim_prod <- raster(file.path(presdir, "used", "Present.Surface.Primary.productivity.Mean.tif"))
+
+surf_prim_prod_df <- as.data.frame(surf_prim_prod, xy = TRUE)
+
+write_csv(surf_prim_prod_df, file = file.path(presdir, "used", "dfs", "surface_prim_prod.csv"), col_names = TRUE)
+```
+
+# Surface salinity mean
+```{r}
+surf_sal <- raster(file.path(presdir, "used", "Present.Surface.Salinity.Mean.tif"))
+
+surf_sal_df <- as.data.frame(surf_sal, xy = TRUE)
+
+write_csv(surf_sal_df, file = file.path(presdir, "used", "dfs", "surface_salinity_mean.csv"), col_names = TRUE)
+```
+
+# Surface temperature range
+```{r}
+surf_temp <- raster(file.path(presdir, "used", "Present.Surface.Temperature.Range.tif"))
+
+surf_temp_df <- as.data.frame(surf_temp, xy = TRUE)
+
+write_csv(surf_temp_df, file = file.path(presdir, "used", "dfs", "surf_temperature_range.csv"), col_names = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
