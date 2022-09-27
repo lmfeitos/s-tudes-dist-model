@@ -281,9 +281,13 @@ stud_bin_pres_df <- raster::rasterToPoints(stud_bin_pres) %>%
   as.data.frame()  %>% 
   rename(ensemble = ensemble_stud_binary_present_comparison2)
 
+#write_csv(stud_bin_pres_df, file = file.path(outdir, "binary_ensemble_df.csv"), col_names = T)
+
 stud_prob_pres_df <- raster::rasterToPoints(stud_prob_pres) %>% 
   as.data.frame() %>% 
   rename(ensemble = ensemble_stud_prob_present_comparison2)
+
+#write_csv(stud_prob_pres_df, file = file.path(outdir, "probability_ensemble_df.csv"), col_names = T)
 ```
 
 ```{r, fig.width=9, fig.height=10}
