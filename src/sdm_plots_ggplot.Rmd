@@ -673,7 +673,7 @@ prob_pres_zoom_center <-
            x = -32, y = 18, size = 5, color = "white") +
   scale_fill_viridis_c(breaks = seq(0, 18, by = 17),
                        labels = c("0%", "100%")) +
-  coord_sf(xlim = c(-80, -30),
+  coord_sf(xlim = c(-78, -30),
            ylim = c(-10, 20),
            expand = FALSE) +
   labs(x = "",
@@ -706,22 +706,25 @@ prob_pres_zoom_south <-
              size = 2.5) +
   geom_text() +
   annotate("text", label = "C",
-           x = -69, y = -3, size = 5, color = "black") +
+           x = -58.4, y = -11, size = 5, color = "black") +
   scale_fill_viridis_c(breaks = seq(0, 18, by = 16),
                        labels = c("0%", "100%")) +
-  coord_sf(xlim = c(-70, -30),
-           ylim = c(-40, -5),
+  coord_sf(xlim = c(-60, -30),
+           ylim = c(-40, -10),
            expand = FALSE) +
   labs(x = "",
        y = "",
        fill = "Suitability") +
-  theme_bw() +
+  theme_void() +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         legend.position = c(.15, .2),
         legend.background = element_rect(fill = "transparent"),
         legend.text = element_text(color = "black"),
-        legend.title = element_text(color = "black")) +
+        legend.title = element_text(color = "black"),
+        axis.line = element_line(color = "black"),
+        axis.line.y.right = element_line(color = "black"),
+        plot.background = element_blank()) +
   guides(fill = guide_colorbar(ticks = F,
                                barwidth = 0.8))
 ```
@@ -750,25 +753,21 @@ prob_pres <-
            ylim = c(-60, 50),
            expand = FALSE) +
    geom_polygon(data = data.frame("x" = c(-78, -78,
-                                          -33, -33), 
-                                  "y" = c(-6, 17, 
-                                          17, -6)),
+                                          -30, -30), 
+                                  "y" = c(-9.9, 20, 
+                                          20, -9.9)),
                 mapping = aes(x = x, y = y), 
                 fill = NA,
                 color = "black",
                 size = .7) +
-   geom_polygon(data = data.frame("x" = c(-57, -57,
-                                          -35, -35), 
+   geom_polygon(data = data.frame("x" = c(-60, -60,
+                                          -30, -30), 
                                   "y" = c(-40, -10, 
                                           -10, -40)),
                 mapping = aes(x = x, y = y), 
                 fill = NA,
                 color = "black",
                 size = .7) +
-   geom_rect(xmin = -80, xmax = -30, ymin = -10, ymax = 20,
-            fill = NA, color = "black", size = 1) +
-  geom_rect(xmin = -70, xmax = -30, ymin = -40, ymax = -5,
-            fill = NA, color = "black", size = 1) +
   labs(x = "",
        y = "",
        fill = "Suitability") +
@@ -797,7 +796,7 @@ ggplot() +
   annotation_custom(ggplotGrob(prob_pres_zoom_center),
                     xmin = 15, xmax = 30, ymin = 10, ymax = 19.5) +
   annotation_custom(ggplotGrob(prob_pres_zoom_south),
-                    xmin = 15, xmax = 30, ymin = 0, ymax = 9.5) +
+                    xmin = 19.25, xmax = 30, ymin = 0, ymax = 10.8) +
   geom_segment(data = arrow_a, aes(x = x1, y = y1, xend = x2, yend = y2),
                arrow = arrow(), lineend = "round", size = .6) +
   geom_segment(data = arrow_b, aes(x = x1, y = y1, xend = x2, yend = y2),
@@ -809,21 +808,6 @@ ggsave(file.path(outdir, "composite_of_probability_with_all_vars_new_model_2.png
 ```
 
 
-
-```{r, fig.height=9, fig.width=11}
-(prob_pres + plot_layout(guides = "auto") | (prob_pres_zoom_center / prob_pres_zoom_south)) +
-  plot_annotation(tag_levels = "A") +
-  plot_layout(widths = c(2, 2),
-              heights = c(5,1),
-              guides = "collect") +
-    geom_segment(data = arrow_a, aes(x = x1, y = y1, xend = x2, yend = y2),
-               arrow = arrow(), lineend = "round") +
-  geom_segment(data = arrow_b, aes(x = x1, y = y1, xend = x2, yend = y2),
-               arrow = arrow(), lineend = "round") 
-
-ggsave(file.path(outdir, "composite_of_probability_with_all_vars_new_model.png"),
-       width = 11, height = 9, dpi = 300)
-```
 
 
 
