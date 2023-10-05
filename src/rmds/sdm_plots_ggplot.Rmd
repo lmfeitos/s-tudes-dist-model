@@ -546,7 +546,7 @@ future_comp_bin <-
 iucn_stud <- 
   ggplot() +
   geom_sf(data = world,
-          size = 0.5) +
+          linewidth = 0.5) +
   geom_sf(data = stud_dist_IUCN,
           aes(fill = legend,
               color = legend)) +
@@ -658,7 +658,11 @@ ggsave(file.path(outdir, "composite_of_present_models_with_all_vars_new_model.pn
 prob_pres_zoom_center <- 
   ggplot() +
   geom_sf(data = world) +
-  geom_raster(data = stud_prob_pres_df, 
+  geom_raster(data = stud_prob_pres_df %>% 
+                mutate(ensemble = case_when(
+                  ensemble < 0 ~ 0,
+                  TRUE ~ ensemble
+                )), 
             aes(x = x, y = y, fill = ensemble),
             show.legend = F) +
   geom_point(data = ocor, 
@@ -671,7 +675,7 @@ prob_pres_zoom_center <-
   geom_text() +
   annotate("text", label = "B",
            x = -32, y = 18, size = 5, color = "white") +
-  scale_fill_viridis_c(breaks = seq(0, 18, by = 17),
+  scale_fill_viridis_c(breaks = seq(0, 18, by = 16),
                        labels = c("0%", "100%")) +
   coord_sf(xlim = c(-78, -30),
            ylim = c(-10, 20),
@@ -694,7 +698,11 @@ prob_pres_zoom_center <-
 prob_pres_zoom_south <-
   ggplot() +
   geom_sf(data = world) +
-  geom_raster(data = stud_prob_pres_df, 
+  geom_raster(data = stud_prob_pres_df %>% 
+                mutate(ensemble = case_when(
+                  ensemble < 0 ~ 0,
+                  TRUE ~ ensemble
+                )), 
             aes(x = x, y = y, fill = ensemble),
             show.legend = F) +
   geom_point(data = ocor, 
@@ -732,7 +740,11 @@ prob_pres_zoom_south <-
 ```{r, fig.width=10, fig.height=10}
 prob_pres <- 
   ggplot() +
-  geom_raster(data = stud_prob_pres_df, 
+  geom_raster(data = stud_prob_pres_df %>% 
+                mutate(ensemble = case_when(
+                  ensemble < 0 ~ 0,
+                  TRUE ~ ensemble
+                )), 
             aes(x = x, y = y, fill = ensemble)) +
   geom_sf(data = world) +
   # geom_sf(data = bathy_200, fill = NA,
@@ -798,9 +810,9 @@ ggplot() +
   annotation_custom(ggplotGrob(prob_pres_zoom_south),
                     xmin = 19.25, xmax = 30, ymin = 0, ymax = 10.8) +
   geom_segment(data = arrow_a, aes(x = x1, y = y1, xend = x2, yend = y2),
-               arrow = arrow(), lineend = "round", size = .6) +
+               arrow = arrow(), lineend = "round", size = .8) +
   geom_segment(data = arrow_b, aes(x = x1, y = y1, xend = x2, yend = y2),
-               arrow = arrow(), lineend = "round", size = .6) +
+               arrow = arrow(), lineend = "round", size = .8) +
   theme_void()
 
 ggsave(file.path(outdir, "composite_of_probability_with_all_vars_new_model_2.png"),
